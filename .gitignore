@@ -1,0 +1,10 @@
+# Secrets and local environment
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+node_modules/
+dist/
+.coverage
+.DS_Store
