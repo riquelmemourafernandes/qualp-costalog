@@ -26,6 +26,14 @@ Sistema interno para estimar rotas, pedágios e custos operacionais de transport
 3. Frontend: http://localhost:5173
 4. API e documentação: http://localhost:8000/docs
 
+## Publicar o frontend na Vercel
+
+- Importe este repositório na Vercel e defina **Root Directory** como `frontend`.
+- Framework: Vite; comando de build: `npm run build`; diretório de saída: `dist`.
+- Configure `VITE_API_URL` com a URL pública da API FastAPI (sem barra final). Essa variável é incorporada durante o build.
+- Na API, configure `CORS_ORIGINS` com o domínio do frontend publicado. O banco PostgreSQL/PostGIS precisa estar hospedado e acessível pela API; não exponha credenciais no frontend.
+- O arquivo `frontend/vercel.json` mantém o fallback para a aplicação de página única. A API não é hospedada pela Vercel por essa configuração.
+
 ## Importante
 
 A primeira versão não possui base nacional validada de praças/tarifas nem roteador certificado para caminhões. Não use estimativas como cotação definitiva de frete ou pedágio sem conferência. Cada tarifa deve ser associada à fonte oficial, categoria veicular e período de vigência.
