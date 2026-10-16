@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Calculator, Fuel, MapPin, Route, Truck, CircleAlert, ArrowRight, RefreshCw } from 'lucide-react'
 import { calculateEstimate, type EstimateResponse } from './services/api'
 
@@ -30,7 +30,7 @@ export default function App() {
     if (selected && name !== 'Personalizado') setConsumption(String(selected.consumption))
   }
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setLoading(true)
     setError('')
