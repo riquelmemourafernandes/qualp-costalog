@@ -132,13 +132,40 @@ export type CitySuggestion = {
   label: string
 }
 
-export async function searchCities(query: string): Promise<CitySuggestion[]> {
-  if (query.trim().length < 2) return []
-  const response = await fetch(`${API_URL}/api/v1/cities?query=${encodeURIComponent(query.trim())}&limit=12`)
-  if (!response.ok) {
-    const body = await response.json().catch(() => null)
-    throw new Error(body?.detail ?? 'Não foi possível consultar as cidades.')
+let ibgeCitiesPromise: Promise<CitySuggestion[]> | null = null
+
+function normalizeCitySearch(value: string): string {
+  return value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase('pt-BR').trim()
+}
+
+async function getIbgeCities(): Promise<CitySuggestion[]> {
+  if (!ibgeCitiesPromise) {
+    ibgeCitiesPromise = fetch('https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome')
+      .then(async response => {
+        if (!response.ok) throw new Error('O IBGE não respondeu à consulta de municípios.')
+        const rows = await response.json()
+        return rows.map((city: any) => {
+          const uf = city.microrregiao?.mesorregiao?.UF ?? city['regiao-imediata']?.['regiao-intermediaria']?.UF
+          return { ibge_id: Number(city.id), name: String(city.nome ?? ''), state: String(uf?.sigla ?? ''), label: `${String(city.nome ?? '')} - ${String(uf?.sigla ?? '')}` } as CitySuggestion
+        }).filter((city: CitySuggestion) => city.name && city.state)
+      })
+      .catch(error => { ibgeCitiesPromise = null; throw error })
   }
-  const data = await response.json()
-  return data.items ?? []
+  return ibgeCitiesPromise
+}
+
+export async function searchCities(query: string): Promise<CitySuggestion[]> {
+  const term = query.trim()
+  if (term.length < 2) return []
+  try {
+    const response = await fetch(`${API_URL}/api/v1/cities?query=${encodeURIComponent(term)}&limit=12`)
+    if (!response.ok) throw new Error('A API do sistema não conseguiu consultar os municípios.')
+    const data = await response.json()
+    if (Array.isArray(data.items)) return data.items
+  } catch {
+    // Fallback para a API pública oficial do IBGE se o backend ou banco estiver indisponível.
+  }
+  const normalized = normalizeCitySearch(term.split(' - ', 1)[0])
+  const cities = await getIbgeCities()
+  return cities.filter(city => normalizeCitySearch(city.name).includes(normalized)).slice(0, 12)
 }
