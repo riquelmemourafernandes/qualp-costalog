@@ -68,3 +68,45 @@ export async function getVehicles(): Promise<VehicleRecord[]> {
   }
   return response.json()
 }
+
+
+export type PlannedToll = {
+  id: number
+  name: string
+  highway: string
+  state: string
+  latitude: number
+  longitude: number
+  vehicle_category: string
+  amount_brl: number | string
+  valid_from: string
+  valid_until: string | null
+  source_name: string
+  source_url: string | null
+}
+
+export type PlannedRoute = {
+  origin: string
+  destination: string
+  vehicle_name: string
+  distance_km: number
+  duration_minutes: number
+  geometry: { type: 'LineString'; coordinates: [number, number][] }
+  tolls: PlannedToll[]
+  toll_count: number
+  routing_provider: string
+  note: string
+}
+
+export async function planRoute(payload: { origin: string; destination: string; vehicle_name: string }): Promise<PlannedRoute> {
+  const response = await fetch(`${API_URL}/api/v1/routes/plan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    throw new Error(body?.detail ?? 'Não foi possível planejar a rota.')
+  }
+  return response.json()
+}
