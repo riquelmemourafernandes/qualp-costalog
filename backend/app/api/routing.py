@@ -3,12 +3,13 @@ import tempfile
 from pathlib import Path
 from datetime import date
 import httpx
-from fastapi import APIRouter, Header, HTTPException, UploadFile, File
+from fastapi import APIRouter, Header, HTTPException, File, UploadFile, UploadFile, File
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from app.db import engine
 from app.schemas import TollCreate
+from app.importers.import_tolls_csv import import_csv
 
 router = APIRouter()
 ORS_BASE = "https://api.openrouteservice.org"
