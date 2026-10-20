@@ -29,3 +29,24 @@ export async function calculateEstimate(payload: EstimateRequest): Promise<Estim
   }
   return response.json()
 }
+
+
+export type RouteHistoryItem = {
+  id: number
+  origin: string
+  destination: string
+  distance_km: number | string | null
+  vehicle_name: string
+  estimated_total_brl: number | string | null
+  created_at: string
+}
+
+export async function getRouteHistory(): Promise<RouteHistoryItem[]> {
+  const response = await fetch(`${API_URL}/api/v1/routes/history?limit=10`)
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    throw new Error(body?.detail ?? 'Não foi possível consultar o histórico.')
+  }
+  const data = await response.json()
+  return data.items ?? []
+}
