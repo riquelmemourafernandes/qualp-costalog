@@ -71,6 +71,21 @@ export default function App() {
     }
   }
 
+  async function requestRoute() {
+    setRouteLoading(true)
+    setRouteError('')
+    try {
+      const route = await planRoute({ origin, destination, vehicle_name: vehicle })
+      setPlannedRoute(route)
+      setDistance(String(route.distance_km))
+      setTolls(String(route.tolls.reduce((sum, toll) => sum + Number(toll.amount_brl), 0)))
+    } catch (e) {
+      setRouteError(e instanceof Error ? e.message : 'Não foi possível planejar a rota.')
+    } finally {
+      setRouteLoading(false)
+    }
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
