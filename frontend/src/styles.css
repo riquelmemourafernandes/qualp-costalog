@@ -94,3 +94,6 @@
 .form-panel .trip-toggle small{white-space:normal;overflow-wrap:anywhere}
 .form-panel .route-button,.form-panel .submit-button{min-height:46px;line-height:1.5;white-space:normal}
 @media(max-width:520px){.form-panel .field-row{grid-template-columns:minmax(0,1fr);gap:10px}.form-panel .field label{margin-top:8px}}
+
+
+.toll-admin-panel>p{font-size:11px;line-height:1.6;color:#74838d;margin:0 0 12px}.toll-admin-panel>label{display:block;font-size:9px;letter-spacing:1px;font-weight:800;color:#778590;margin:16px 0 8px;line-height:1.5}.toll-admin-panel .admin-token-input,.toll-admin-panel .toll-file-input{display:block;width:100%;min-width:0;max-width:100%;font:inherit;font-size:12px;line-height:1.5}.toll-admin-panel .admin-token-input{border:1px solid #dfe5e9;border-radius:8px;padding:12px}.toll-admin-panel .toll-file-input{padding:8px 0;color:#56646e}.toll-admin-panel .antt-footnote{line-height:1.65;overflow-wrap:anywhere}
