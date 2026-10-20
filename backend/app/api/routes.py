@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from app.schemas import RouteCalculateRequest, RouteCalculateResponse, VehicleCreate
 from app.db import engine, ensure_app_tables
 from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, OperationalError
 
 router = APIRouter()
 
@@ -49,9 +49,18 @@ def create_vehicle(vehicle: VehicleCreate):
             """), vehicle.model_dump()).mappings().one()
         return dict(row)
     except SQLAlchemyError as exc:
-        if "unique" in str(exc).lower() or "duplicate" in str(exc).lower():
+        message = str(exc).lower()
+        if "unique" in message or "duplicate" in message:
             raise HTTPException(status_code=409, detail="Já existe um veículo com esse nome.") from exc
-        raise HTTPException(status_code=503, detail="Não foi possível salvar o veículo no banco.") from exc
+        if isinstance(exc, OperationalError):
+            raise HTTPException(
+                status_code=503,
+                detail="O banco de dados não está acessível. No Render, confira se DATABASE_URL está configurada com a URL interna do PostgreSQL e se o serviço do banco está ativo.",
+            ) from exc
+        raise HTTPException(
+            status_code=503,
+            detail="O banco recusou o cadastro. Confira as tabelas/permissões do PostgreSQL no Render e os logs do serviço da API.",
+        ) from exc
 
 
 @router.post("/routes/calculate", response_model=RouteCalculateResponse, tags=["routes"])
