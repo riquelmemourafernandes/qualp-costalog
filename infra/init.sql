@@ -24,3 +24,13 @@ CREATE TABLE IF NOT EXISTS route_tolls (
  amount_brl_snapshot NUMERIC(12,2) NOT NULL, tariff_source_snapshot TEXT,
  tariff_valid_from_snapshot DATE, tariff_valid_until_snapshot DATE
 );
+
+CREATE TABLE IF NOT EXISTS vehicle_profiles (
+ id BIGSERIAL PRIMARY KEY,
+ name VARCHAR(80) NOT NULL UNIQUE,
+ vehicle_type VARCHAR(40) NOT NULL,
+ axles INTEGER NOT NULL CHECK (axles BETWEEN 2 AND 12),
+ consumption_km_l NUMERIC(8,3) NOT NULL CHECK (consumption_km_l > 0),
+ created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
