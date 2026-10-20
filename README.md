@@ -1,47 +1,60 @@
 # QualP Costalog 1.0
 
-Sistema interno para estimar rotas, pedágios e custos operacionais de transporte rodoviário no Brasil.
+Sistema web para planejamento de rotas de veículos pesados e estimativa de custos de transporte rodoviário no Brasil.
 
-> **Status:** MVP inicial em desenvolvimento. Os valores de pedágio e as rotas ainda precisam de fontes verificadas antes de uso operacional.
+> **Status:** MVP em evolução. A integração de roteamento está implementada no backend, mas exige uma chave do provedor. A base local de pedágios começa vazia e não deve ser tratada como base nacional completa.
 
-## Objetivos
+## Funcionalidades
 
-- Calcular estimativas de combustível a partir da distância, consumo e preço por litro.
-- Cadastrar veículos e suas características operacionais, com persistência no PostgreSQL.
-- Registrar e consultar o histórico das estimativas quando o banco estiver conectado.
-- Manter praças e tarifas de pedágio com fonte e vigência.
-- Exibir rota e pontos de pedágio em um mapa.
-- Guardar histórico e permitir auditoria dos valores calculados.
-
-## Stack
-
-- Frontend: React, TypeScript, Vite, Leaflet.
-- API: Python, FastAPI, SQLAlchemy.
-- Banco: PostgreSQL + PostGIS.
-- Execução local: Docker Compose.
+- Cálculo de combustível por distância, consumo e preço por litro.
+- Catálogo persistente de caminhão, carreta, LS e rodotrem.
+- Histórico de estimativas no PostgreSQL.
+- Planejamento de rota pelo perfil `driving-hgv` do OpenRouteService, com geometria, distância e duração.
+- Consulta de praças/tarifas locais com coordenadas, categoria veicular, fonte e validade.
+- Cadastro de praças/tarifas protegido por `ADMIN_API_TOKEN`.
+- API documentada em `/docs`.
 
 ## Iniciar com Docker
 
 1. Copie `.env.example` para `.env`.
-2. Execute `docker compose up --build`.
-3. Frontend: http://localhost:5173
-4. API e documentação: http://localhost:8000/docs
+2. Configure `OPENROUTESERVICE_API_KEY` com uma chave do OpenRouteService no ambiente do backend. A chave deve permanecer no servidor.
+3. Defina um valor forte e privado para `ADMIN_API_TOKEN` se for cadastrar pedágios pela API.
+4. Execute `docker compose up --build`.
+5. Frontend: http://localhost:5173
+6. API e documentação: http://localhost:8000/docs
 
-## Publicar o frontend na Vercel
+Sem a chave de roteamento, o sistema continua permitindo cálculos manuais, mas a rota real retorna um aviso de configuração ausente.
 
-- Importe este repositório na Vercel e defina **Root Directory** como `frontend`.
-- Framework: Vite; comando de build: `npm run build`; diretório de saída: `dist`.
-- Configure `VITE_API_URL` com a URL pública da API FastAPI (sem barra final). Essa variável é incorporada durante o build.
-- Na API, configure `CORS_ORIGINS` com o domínio do frontend publicado. O banco PostgreSQL/PostGIS precisa estar hospedado e acessível pela API; não exponha credenciais no frontend.
-- O arquivo `frontend/vercel.json` mantém o fallback para a aplicação de página única. A API não é hospedada pela Vercel por essa configuração.
+## Rotas da API
 
-## Importante
+- `POST /api/v1/routes/plan`: recebe origem e destino; retorna rota HGV, geometria GeoJSON, distância, duração e pedágios que correspondam a tarifas locais vigentes.
+- `POST /api/v1/routes/calculate`: calcula combustível e pedágios a partir dos valores informados.
+- `GET /api/v1/routes/history`: histórico persistido.
+- `GET /api/v1/vehicles` e `POST /api/v1/vehicles`: catálogo de veículos.
+- `GET /api/v1/tolls`: praças e tarifas cadastradas.
+- `POST /api/v1/tolls`: cadastro de praça e tarifas; exige cabeçalho `X-Admin-Token`.
 
-A primeira versão não possui base nacional validada de praças/tarifas nem roteador certificado para caminhões. Não use estimativas como cotação definitiva de frete ou pedágio sem conferência. Cada tarifa deve ser associada à fonte oficial, categoria veicular e período de vigência.
+## Cadastro auditável de pedágios
 
-## Estrutura
+Cada tarifa deve conter categoria veicular, valor, início/fim de vigência e fonte. O sistema não inventa tarifas. A API de rotas só mostra praças que estejam na base local, próximas ao traçado e com tarifa vigente. Uma base vazia ou incompleta não significa que não existam pedágios no caminho.
 
-- `frontend/`: interface web.
-- `backend/`: API e regras de cálculo.
-- `infra/`: inicialização do banco, incluindo o catálogo de veículos.
-- `data/imports/`: orientações para importação auditável.
+## Publicar na Vercel
+
+- Importe o repositório e defina **Root Directory** como `frontend`.
+- Build: `npm run build`; output: `dist`.
+- Configure `VITE_API_URL` com a URL pública da API FastAPI, sem barra final.
+- Hospede a API e o PostgreSQL/PostGIS separadamente. Na API, configure `CORS_ORIGINS`, `DATABASE_URL`, `OPENROUTESERVICE_API_KEY` e, se necessário, `ADMIN_API_TOKEN`.
+- Nunca coloque chaves privadas em variáveis `VITE_*`.
+
+## Limitações importantes
+
+- A qualidade do roteamento depende do provedor e dos dados cartográficos; valide restrições de altura, peso, eixo, carga perigosa, obras e regras locais antes de operar.
+- A geometria da rota pode ser exibida no mapa, mas tarifas só são confiáveis se a base local tiver sido preenchida e conferida contra fontes oficiais.
+- Não há, neste repositório, importação nacional automática de tarifas oficiais pronta para uso. É necessário importar e auditar dados de cada concessionária/agência, respeitando suas condições de uso.
+
+## Stack
+
+- Frontend: React, TypeScript, Vite, Leaflet.
+- API: Python, FastAPI, HTTPX, SQLAlchemy.
+- Banco: PostgreSQL + PostGIS.
+- Execução local: Docker Compose.
