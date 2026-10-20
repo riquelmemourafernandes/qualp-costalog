@@ -111,7 +111,27 @@ export type PlannedRoute = {
   note: string
 }
 
+const ROUTE_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000
+
 export async function planRoute(payload: { origin: string; destination: string; vehicle_name: string }): Promise<PlannedRoute> {
+  const cacheKey = 'qualp-route-v1:' + JSON.stringify([
+    payload.origin.trim().toLocaleLowerCase('pt-BR'),
+    payload.destination.trim().toLocaleLowerCase('pt-BR'),
+    payload.vehicle_name.trim().toLocaleLowerCase('pt-BR'),
+  ])
+  try {
+    const cached = localStorage.getItem(cacheKey)
+    if (cached) {
+      const parsed = JSON.parse(cached) as { savedAt: number; route: PlannedRoute }
+      if (Date.now() - parsed.savedAt < ROUTE_CACHE_TTL_MS && parsed.route?.geometry?.coordinates?.length) {
+        return { ...parsed.route, distance_km: Math.round(parsed.route.distance_km) }
+      }
+      localStorage.removeItem(cacheKey)
+    }
+  } catch {
+    // Se o armazenamento local estiver indisponível, continua com a consulta normal.
+  }
+
   const response = await fetch(`${API_URL}/api/v1/routes/plan`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -121,7 +141,14 @@ export async function planRoute(payload: { origin: string; destination: string; 
     const body = await response.json().catch(() => null)
     throw new Error(body?.detail ?? 'Não foi possível planejar a rota.')
   }
-  return response.json()
+  const route = await response.json() as PlannedRoute
+  route.distance_km = Math.round(route.distance_km)
+  try {
+    localStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), route }))
+  } catch {
+    // Cache é opcional; a rota calculada continua válida nesta consulta.
+  }
+  return route
 }
 
 
