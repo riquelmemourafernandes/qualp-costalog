@@ -32,8 +32,8 @@ const anttTableA: Record<AnttCargo, Partial<Record<number, AnttCoefficient>>> = 
 
 
 export default function App() {
-  const [origin, setOrigin] = useState('Santos, SP')
-  const [destination, setDestination] = useState('Campinas, SP')
+  const [origin, setOrigin] = useState('')
+  const [destination, setDestination] = useState('')
   const [originSuggestions, setOriginSuggestions] = useState<CitySuggestion[]>([])
   const [destinationSuggestions, setDestinationSuggestions] = useState<CitySuggestion[]>([])
   const [selectedOrigin, setSelectedOrigin] = useState<CitySuggestion | null>(null)
@@ -41,7 +41,7 @@ export default function App() {
   const [roundTrip, setRoundTrip] = useState(false)
   const [emptyReturn, setEmptyReturn] = useState(false)
   const [emptyReturnDistance, setEmptyReturnDistance] = useState('180')
-  const [distance, setDistance] = useState('180')
+  const [distance, setDistance] = useState('')
   const [vehicleOptions, setVehicleOptions] = useState(defaultVehicles)
   const [vehicle, setVehicle] = useState(defaultVehicles[1].name)
   const [consumption, setConsumption] = useState('2.2')
@@ -223,7 +223,7 @@ export default function App() {
               <label className="trip-toggle"><input type="checkbox" checked={roundTrip} onChange={e => { setRoundTrip(e.target.checked); setPlannedRoute(null) }} /><span><strong>Calcular ida e volta</strong><small>Traça os dois sentidos separadamente e soma distância, tempo e pedágios encontrados.</small></span></label>
               <button className="route-button" type="button" onClick={requestRoute} disabled={routeLoading}>{routeLoading ? 'Buscando rota para veículo pesado...' : 'Planejar rota real para caminhão'}</button>
               {routeError && <p className="error-message">{routeError}</p>}
-              <div className="field-row"><div className="field"><label>DISTÂNCIA (KM)</label><input type="number" min="0.1" step="0.1" value={distance} onChange={e => setDistance(e.target.value)} required /></div><div className="field"><label>VEÍCULO</label><select value={vehicle} onChange={e => chooseVehicle(e.target.value)}>{vehicleOptions.map(item => <option key={item.name}>{item.name}</option>)}</select></div></div>
+              <div className="field-row"><div className="field"><label>DISTÂNCIA (KM)</label><input type="number" min="1" step="1" value={distance} onChange={e => setDistance(e.target.value)} required /></div><div className="field"><label>VEÍCULO</label><select value={vehicle} onChange={e => chooseVehicle(e.target.value)}>{vehicleOptions.map(item => <option key={item.name}>{item.name}</option>)}</select></div></div>
               <div className="vehicle-meta"><span>Configuração selecionada</span><strong>{vehicleOptions.find(item => item.name === vehicle)?.axles ?? 6} eixos</strong><button type="button" className="text-button" onClick={() => { setShowVehicleForm(v => !v); setVehicleMessage('') }}>{showVehicleForm ? 'Cancelar' : '+ Cadastrar veículo'}</button></div>
               {showVehicleForm && <div className="vehicle-form">
                 <label>NOME DO VEÍCULO</label><input value={vehicleNameInput} onChange={e => setVehicleNameInput(e.target.value)} required minLength={2} maxLength={80} placeholder="Ex.: Carreta 7 eixos" />
