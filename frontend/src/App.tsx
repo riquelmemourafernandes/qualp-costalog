@@ -1,8 +1,8 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Calculator, Fuel, MapPin, Route, Truck, CircleAlert, ArrowRight, RefreshCw } from 'lucide-react'
-import { calculateEstimate, getRouteHistory, type EstimateResponse, type RouteHistoryItem } from './services/api'
+import { calculateEstimate, getRouteHistory, getVehicles, type EstimateResponse, type RouteHistoryItem } from './services/api'
 
-const vehicles = [
+const defaultVehicles = [
   { name: 'Caminhão 2 eixos', consumption: 3.0, axles: 2 },
   { name: 'Carreta 6 eixos', consumption: 2.2, axles: 6 },
   { name: 'LS', consumption: 2.0, axles: 6 },
@@ -16,7 +16,8 @@ export default function App() {
   const [origin, setOrigin] = useState('Santos, SP')
   const [destination, setDestination] = useState('Campinas, SP')
   const [distance, setDistance] = useState('180')
-  const [vehicle, setVehicle] = useState(vehicles[1].name)
+  const [vehicleOptions, setVehicleOptions] = useState(defaultVehicles)
+  const [vehicle, setVehicle] = useState(defaultVehicles[1].name)
   const [consumption, setConsumption] = useState('2.2')
   const [fuelPrice, setFuelPrice] = useState('6.20')
   const [tolls, setTolls] = useState('0')
@@ -26,9 +27,19 @@ export default function App() {
   const [history, setHistory] = useState<RouteHistoryItem[]>([])
   const [historyMessage, setHistoryMessage] = useState('O histórico será carregado após a primeira consulta.')
 
+  useEffect(() => {
+    getVehicles().then(records => {
+      const options = records.map(item => ({ name: item.name, consumption: Number(item.consumption_km_l), axles: item.axles }))
+      setVehicleOptions([...options, { name: 'Personalizado', consumption: 2.5, axles: 6 }])
+      if (options.length > 0) {
+        setVehicle(current => options.some(item => item.name === current) ? current : options[0].name)
+      }
+    }).catch(() => { /* Mantém o catálogo local se a API ou o banco ainda não estiverem disponíveis. */ })
+  }, [])
+
   function chooseVehicle(name: string) {
     setVehicle(name)
-    const selected = vehicles.find(item => item.name === name)
+    const selected = vehicleOptions.find(item => item.name === name)
     if (selected && name !== 'Personalizado') setConsumption(String(selected.consumption))
   }
 
@@ -77,7 +88,7 @@ export default function App() {
             <form onSubmit={submit}>
               <label>ORIGEM</label><div className="input-wrap"><MapPin size={17} /><input value={origin} onChange={e => setOrigin(e.target.value)} required placeholder="Cidade de origem" /></div>
               <label>DESTINO</label><div className="input-wrap"><MapPin size={17} /><input value={destination} onChange={e => setDestination(e.target.value)} required placeholder="Cidade de destino" /></div>
-              <div className="field-row"><div className="field"><label>DISTÂNCIA (KM)</label><input type="number" min="0.1" step="0.1" value={distance} onChange={e => setDistance(e.target.value)} required /></div><div className="field"><label>VEÍCULO</label><select value={vehicle} onChange={e => chooseVehicle(e.target.value)}>{vehicles.map(item => <option key={item.name}>{item.name}</option>)}</select></div></div>
+              <div className="field-row"><div className="field"><label>DISTÂNCIA (KM)</label><input type="number" min="0.1" step="0.1" value={distance} onChange={e => setDistance(e.target.value)} required /></div><div className="field"><label>VEÍCULO</label><select value={vehicle} onChange={e => chooseVehicle(e.target.value)}>{vehicleOptions.map(item => <option key={item.name}>{item.name}</option>)}</select></div></div>
               <div className="field-row"><div className="field"><label>CONSUMO (KM/L)</label><input type="number" min="0.1" step="0.1" value={consumption} onChange={e => setConsumption(e.target.value)} required /></div><div className="field"><label>DIESEL (R$/L)</label><input type="number" min="0.01" step="0.01" value={fuelPrice} onChange={e => setFuelPrice(e.target.value)} required /></div></div>
               <label>PEDÁGIOS TOTAIS (R$)</label><div className="input-wrap"><span className="currency-prefix">R$</span><input type="number" min="0" step="0.01" value={tolls} onChange={e => setTolls(e.target.value)} required /></div>
               <button className="submit-button" type="submit" disabled={loading}>{loading ? <RefreshCw size={18} className="spin" /> : <Calculator size={18} />}{loading ? 'Calculando...' : 'Calcular estimativa'}<ArrowRight size={17} /></button>
