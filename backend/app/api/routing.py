@@ -71,7 +71,7 @@ def plan_route(request: RoutePlanRequest):
         geojson_line = __import__("json").dumps(geometry)
         with engine.connect() as connection:
             rows = connection.execute(text("""
-                SELECT p.id, p.name, p.highway, p.state, r.vehicle_category,
+                SELECT p.id, p.name, p.highway, p.state, ST_AsGeoJSON(p.location::geometry) AS point_geojson, r.vehicle_category,
                        r.amount_brl, r.valid_from, r.valid_until, r.source_name, r.source_url
                 FROM toll_plazas p
                 JOIN toll_rates r ON r.toll_plaza_id = p.id
@@ -87,7 +87,12 @@ def plan_route(request: RoutePlanRequest):
                     ST_SetSRID(ST_GeomFromGeoJSON(:line), 4326)::geography
                 ), p.name
             """), {"line": geojson_line}).mappings().all()
-        tolls = [dict(row) for row in rows]
+        tolls = []
+        for row in rows:
+            item = dict(row)
+            point = __import__("json").loads(item.pop("point_geojson"))
+            item["longitude"], item["latitude"] = point["coordinates"]
+            tolls.append(item)
     except SQLAlchemyError:
         # Routing remains useful when PostGIS/toll tables have not been provisioned yet.
         tolls = []
