@@ -173,3 +173,17 @@ export async function searchCities(query: string): Promise<CitySuggestion[]> {
   const cities = await getIbgeCities()
   return cities.filter(city => normalizeCitySearch(city.name).includes(normalized)).slice(0, 12)
 }
+
+
+export async function importTollsCsv(file: File, adminToken: string): Promise<{ success: boolean; inserted_rates: number; duplicate_rates_skipped: number; message: string }> {
+  const form = new FormData()
+  form.append('file', file)
+  const response = await fetch(`${API_URL}/api/v1/tolls/import-csv`, {
+    method: 'POST',
+    headers: { 'X-Admin-Token': adminToken },
+    body: form,
+  })
+  const body = await response.json().catch(() => null)
+  if (!response.ok) throw new Error(body?.detail ?? 'Não foi possível importar o arquivo de pedágios.')
+  return body
+}
