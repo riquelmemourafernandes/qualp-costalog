@@ -177,7 +177,7 @@ export default function App() {
       setPlannedRoute(route)
       setDistance(String(route.distance_km))
       setEmptyReturnDistance(String(outbound.distance_km))
-      setTolls('0')
+      setTolls(String(route.tolls.reduce((sum, toll) => sum + Number(toll.amount_brl), 0)))
       setResult(null)
       setHistoryMessage('Rota calculada. Faça o cálculo de custos para salvar esta consulta no histórico.')
     } catch (e) {
