@@ -77,3 +77,20 @@
   .form-panel .field-row{grid-template-columns:minmax(0,1fr);gap:8px}
   .city-suggestion{align-items:flex-start;flex-direction:column;gap:4px}
 }
+
+
+/* Layout consistente: campos separados, labels legíveis e sem sobreposição */
+.form-panel form{display:flex;flex-direction:column;gap:0;min-width:0}
+.form-panel form>label:not(.trip-toggle){line-height:1.5;margin:20px 0 9px;white-space:normal}
+.form-panel .input-wrap,.form-panel .field input,.form-panel .field select,.vehicle-form>input{min-height:46px;line-height:1.45}
+.form-panel .field-row{align-items:start;gap:16px;margin-top:8px}
+.form-panel .field{display:flex;flex-direction:column;gap:8px}
+.form-panel .field label{margin:10px 0 0;line-height:1.5;overflow-wrap:anywhere}
+.form-panel .city-suggestions{position:relative;z-index:5;margin:7px 0 14px}
+.form-panel .city-help{margin:2px 0 12px;line-height:1.65}
+.form-panel .vehicle-meta{gap:10px;line-height:1.6;overflow-wrap:anywhere}
+.form-panel .trip-toggle{width:100%;min-width:0;line-height:1.55}
+.form-panel .trip-toggle span{min-width:0}
+.form-panel .trip-toggle small{white-space:normal;overflow-wrap:anywhere}
+.form-panel .route-button,.form-panel .submit-button{min-height:46px;line-height:1.5;white-space:normal}
+@media(max-width:520px){.form-panel .field-row{grid-template-columns:minmax(0,1fr);gap:10px}.form-panel .field label{margin-top:8px}}
