@@ -2,3 +2,20 @@
 .history-empty{font-size:12px;color:#7b8993;line-height:1.5;margin:0}.history-list{display:grid;gap:0}.history-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #edf0f2}.history-item>div{min-width:0}.history-item strong{font-size:11px;color:#26353f}.history-item p{font-size:10px;color:#7b8993;margin:5px 0 0}.history-item>strong{white-space:nowrap}
 
 .route-button{width:100%;margin-top:12px;border:1px solid #cbd5da;border-radius:8px;background:#f7f9fa;color:#253540;padding:12px;font:inherit;font-size:12px;font-weight:750;cursor:pointer}.route-button:hover{background:#eef3e4;border-color:#c9d98b}.route-button:disabled{opacity:.6;cursor:wait}.map-panel{padding:18px}.route-map{width:100%;height:350px;border-radius:9px;z-index:0}.route-note{font-size:11px;color:#74838d;line-height:1.55;margin:12px 0}.toll-list{font-size:11px;color:#33434d}.toll-list>strong{display:block;margin:12px 0}.toll-list>p{line-height:1.5;color:#7b8993}.leaflet-container{font-family:inherit}.map-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:10px;color:#66757e}.map-legend span{display:flex;align-items:center;gap:5px}.map-legend i{display:inline-block;width:8px;height:8px;border-radius:50%}.legend-origin{background:#247a4b}.legend-destination{background:#c54a3b}.legend-toll{background:#d2a21c}
+
+
+/* Route details and persistent vehicle registration */
+.vehicle-meta{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:10px;padding:10px 11px;background:#f6f8f4;border:1px solid #e8eddf;border-radius:8px;font-size:11px;color:#718079}
+.vehicle-meta strong{color:#253640;font-size:11px}
+.text-button{margin-left:auto;border:0;background:transparent;color:#60791c;font:inherit;font-weight:800;cursor:pointer;padding:3px 0}
+.text-button:hover{text-decoration:underline}
+.vehicle-form{display:grid;gap:8px;margin-top:12px;padding:14px;border:1px solid #e4e9df;background:#fbfcf9;border-radius:9px}
+.vehicle-form>label{display:block;font-size:9px;letter-spacing:1px;font-weight:800;color:#778590;margin:7px 0 0}
+.vehicle-form>input{width:100%;min-width:0;border:1px solid #dfe5e9;border-radius:8px;padding:12px 10px;font:inherit;font-size:13px;color:#273640;background:#fff}
+.vehicle-form .field label{margin-top:5px}
+.success-message{font-size:12px;color:#397247;margin:12px 0 0}
+.route-summary{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:13px 0;padding:12px;background:#f6f8f9;border:1px solid #e8edef;border-radius:9px}
+.route-summary div{min-width:0;padding:4px}
+.route-summary span{display:block;font-size:9px;letter-spacing:.8px;font-weight:800;color:#82909a;margin-bottom:5px}
+.route-summary strong{display:block;font-size:12px;line-height:1.45;color:#263640;overflow-wrap:anywhere}
+@media(max-width:420px){.route-summary{grid-template-columns:1fr}.vehicle-meta{align-items:flex-start}.text-button{margin-left:0}}
