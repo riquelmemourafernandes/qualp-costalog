@@ -1,7 +1,9 @@
 import os
+import tempfile
+from pathlib import Path
 from datetime import date
 import httpx
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, UploadFile, File
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -165,3 +167,36 @@ def create_toll(toll: TollCreate, x_admin_token: str | None = Header(default=Non
         return {"id": plaza, "name": toll.name, "rates_created": len(toll.rates)}
     except SQLAlchemyError as exc:
         raise HTTPException(status_code=503, detail="Não foi possível salvar a praça e suas tarifas. Confira o banco/PostGIS.") from exc
+
+
+
+@router.post("/tolls/import-csv", tags=["tolls"])
+def import_tolls_csv(file: UploadFile = File(...), x_admin_token: str | None = Header(default=None)):
+    """Import toll plazas and effective tariffs from an audited CSV file."""
+    expected = os.getenv("ADMIN_API_TOKEN", "").strip()
+    if not expected:
+        raise HTTPException(status_code=503, detail="Importação administrativa desabilitada. Configure ADMIN_API_TOKEN na API.")
+    if not x_admin_token or x_admin_token != expected:
+        raise HTTPException(status_code=401, detail="Token administrativo inválido.")
+    if not file.filename or not file.filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=422, detail="Envie um arquivo CSV.")
+    content = file.file.read()
+    if not content or len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=422, detail="O CSV está vazio ou excede o limite de 10 MB.")
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as temp:
+            temp.write(content)
+            temp_path = Path(temp.name)
+        try:
+            from app.importers.import_tolls_csv import import_csv
+            created, skipped = import_csv(temp_path)
+        finally:
+            temp_path.unlink(missing_ok=True)
+    except (ValueError, UnicodeDecodeError) as exc:
+        raise HTTPException(status_code=422, detail=f"CSV inválido: {exc}") from exc
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=503, detail="Não foi possível importar. Confira o banco PostgreSQL/PostGIS e as tabelas de pedágio.") from exc
+    finally:
+        file.file.close()
+    return {"success": True, "inserted_rates": created, "duplicate_rates_skipped": skipped,
+            "message": f"Importação concluída: {created} tarifas inseridas; {skipped} duplicadas ignoradas."}
