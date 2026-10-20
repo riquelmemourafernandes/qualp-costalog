@@ -78,7 +78,6 @@ export default function App() {
       const route = await planRoute({ origin, destination, vehicle_name: vehicle })
       setPlannedRoute(route)
       setDistance(String(route.distance_km))
-      setTolls(String(route.tolls.reduce((sum, toll) => sum + Number(toll.amount_brl), 0)))
     } catch (e) {
       setRouteError(e instanceof Error ? e.message : 'Não foi possível planejar a rota.')
     } finally {
