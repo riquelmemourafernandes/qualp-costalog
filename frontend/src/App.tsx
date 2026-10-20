@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Calculator, Fuel, MapPin, Route, Truck, CircleAlert, ArrowRight, RefreshCw } from 'lucide-react'
-import { calculateEstimate, createVehicle, getRouteHistory, getVehicles, planRoute, type EstimateResponse, type RouteHistoryItem, type PlannedRoute } from './services/api'
+import { calculateEstimate, createVehicle, getRouteHistory, getVehicles, planRoute, type EstimateResponse, type RouteHistoryItem, type PlannedRoute, searchCities, type CitySuggestion } from './services/api'
 import RouteMap from './RouteMap'
 
 const defaultVehicles = [
@@ -34,6 +34,7 @@ const anttTableA: Record<AnttCargo, Partial<Record<number, AnttCoefficient>>> = 
 export default function App() {
   const [origin, setOrigin] = useState('Santos, SP')
   const [destination, setDestination] = useState('Campinas, SP')
+  const [citySuggestions, setCitySuggestions] = useState<CitySuggestion[]>([])
   const [distance, setDistance] = useState('180')
   const [vehicleOptions, setVehicleOptions] = useState(defaultVehicles)
   const [vehicle, setVehicle] = useState(defaultVehicles[1].name)
@@ -71,6 +72,19 @@ export default function App() {
       setHistoryMessage(items.length ? '' : 'Nenhuma consulta salva ainda.')
     }).catch(() => setHistoryMessage('Histórico indisponível: confira a conexão do banco de dados.'))
   }, [])
+
+
+  async function updateCitySuggestions(value: string) {
+    if (value.trim().length < 2) {
+      setCitySuggestions([])
+      return
+    }
+    try {
+      setCitySuggestions(await searchCities(value))
+    } catch {
+      setCitySuggestions([])
+    }
+  }
 
   function chooseVehicle(name: string) {
     setVehicle(name)
@@ -166,8 +180,8 @@ export default function App() {
           <section className="panel form-panel">
             <div className="panel-heading"><div className="heading-icon"><Route size={18} /></div><div><h2>Dados da viagem</h2><p>Preencha o trajeto e os dados do veículo.</p></div></div>
             <form onSubmit={submit}>
-              <label>ORIGEM</label><div className="input-wrap"><MapPin size={17} /><input value={origin} onChange={e => setOrigin(e.target.value)} required placeholder="Cidade de origem" /></div>
-              <label>DESTINO</label><div className="input-wrap"><MapPin size={17} /><input value={destination} onChange={e => setDestination(e.target.value)} required placeholder="Cidade de destino" /></div>
+              <label>ORIGEM</label><div className="input-wrap"><MapPin size={17} /><input list="brazil-city-options" autoComplete="off" value={origin} onChange={e => { setOrigin(e.target.value); void updateCitySuggestions(e.target.value) }} required placeholder="Digite uma cidade..." /></div>
+              <label>DESTINO</label><div className="input-wrap"><MapPin size={17} /><input list="brazil-city-options" autoComplete="off" value={destination} onChange={e => { setDestination(e.target.value); void updateCitySuggestions(e.target.value) }} required placeholder="Digite uma cidade..." /></div><datalist id="brazil-city-options">{citySuggestions.map(city => <option key={city.ibge_id} value={city.label}>{city.name} - {city.state}</option>)}</datalist><small className="city-help">Digite pelo menos 2 letras e selecione a cidade e o estado na lista.</small>
               <button className="route-button" type="button" onClick={requestRoute} disabled={routeLoading}>{routeLoading ? 'Buscando rota para veículo pesado...' : 'Planejar rota real para caminhão'}</button>
               {routeError && <p className="error-message">{routeError}</p>}
               <div className="field-row"><div className="field"><label>DISTÂNCIA (KM)</label><input type="number" min="0.1" step="0.1" value={distance} onChange={e => setDistance(e.target.value)} required /></div><div className="field"><label>VEÍCULO</label><select value={vehicle} onChange={e => chooseVehicle(e.target.value)}>{vehicleOptions.map(item => <option key={item.name}>{item.name}</option>)}</select></div></div>
