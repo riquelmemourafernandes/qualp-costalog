@@ -34,9 +34,13 @@ def _ensure_cities_loaded() -> None:
         raise HTTPException(status_code=503, detail="Não foi possível carregar a lista oficial de municípios do IBGE. Tente novamente em instantes.") from exc
     rows = []
     for city in municipalities:
-        uf = city.get("microrregiao", {}).get("mesorregiao", {}).get("UF", {})
+        micro = city.get("microrregiao") or {}
+        meso = micro.get("mesorregiao") or {}
+        uf = meso.get("UF") or {}
         if not uf:
-            uf = city.get("regiao-imediata", {}).get("regiao-intermediaria", {}).get("UF", {})
+            immediate = city.get("regiao-imediata") or {}
+            intermediate = immediate.get("regiao-intermediaria") or {}
+            uf = intermediate.get("UF") or {}
         name = city.get("nome", "").strip()
         state = uf.get("sigla", "").strip()
         if name and state:
@@ -69,7 +73,9 @@ def search_cities(query: str = Query(default="", min_length=0, max_length=100), 
     """Search Brazilian municipalities, importing the official IBGE list on first use."""
     try:
         _ensure_cities_loaded()
-        term = _normalize_city(query.strip())
+        raw_term = query.strip()
+        # If a user edits a previously selected "Município - UF" label, search by municipality name.
+        term = _normalize_city(raw_term.split(" - ", 1)[0].strip())
         if len(term) < 2:
             return {"items": [], "count": 0, "source": "IBGE"}
         with engine.connect() as connection:
