@@ -1,10 +1,90 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+import json
+import unicodedata
+from urllib.request import Request, urlopen
 from app.schemas import RouteCalculateRequest, RouteCalculateResponse, VehicleCreate
 from app.db import engine, ensure_app_tables
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError, OperationalError
 
+
 router = APIRouter()
+
+
+def _normalize_city(value: str) -> str:
+    return "".join(ch for ch in unicodedata.normalize("NFKD", value.casefold()) if not unicodedata.combining(ch))
+
+
+def _ensure_cities_loaded() -> None:
+    """Populate the local municipality catalog once from the official IBGE API."""
+    with engine.connect() as connection:
+        exists = connection.execute(text("SELECT to_regclass('public.brazil_cities')")).scalar()
+        if exists:
+            count = connection.execute(text("SELECT COUNT(*) FROM brazil_cities")).scalar_one()
+            if count:
+                return
+    request = Request(
+        "https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome",
+        headers={"User-Agent": "QualP-Costalog/1.0"},
+    )
+    try:
+        with urlopen(request, timeout=25) as response:
+            municipalities = json.loads(response.read().decode("utf-8"))
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Não foi possível carregar a lista oficial de municípios do IBGE. Tente novamente em instantes.") from exc
+    rows = []
+    for city in municipalities:
+        uf = city.get("microrregiao", {}).get("mesorregiao", {}).get("UF", {})
+        if not uf:
+            uf = city.get("regiao-imediata", {}).get("regiao-intermediaria", {}).get("UF", {})
+        name = city.get("nome", "").strip()
+        state = uf.get("sigla", "").strip()
+        if name and state:
+            rows.append({"ibge_id": int(city["id"]), "name": name, "state": state, "normalized": _normalize_city(name)})
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("""
+                CREATE TABLE IF NOT EXISTS brazil_cities (
+                    ibge_id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    state CHAR(2) NOT NULL,
+                    name_normalized TEXT NOT NULL
+                )
+            """))
+            connection.execute(text("""
+                INSERT INTO brazil_cities (ibge_id, name, state, name_normalized)
+                VALUES (:ibge_id, :name, :state, :normalized)
+                ON CONFLICT (ibge_id) DO UPDATE SET
+                    name = EXCLUDED.name, state = EXCLUDED.state,
+                    name_normalized = EXCLUDED.name_normalized
+            """), rows)
+            connection.execute(text("CREATE INDEX IF NOT EXISTS brazil_cities_normalized_idx ON brazil_cities (name_normalized)"))
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=503, detail="A lista de municípios foi obtida, mas não pôde ser gravada no banco. Confira DATABASE_URL e as permissões do PostgreSQL.") from exc
+
+
+
+@router.get("/cities", tags=["localidades"])
+def search_cities(query: str = Query(default="", min_length=0, max_length=100), limit: int = Query(default=12, ge=1, le=30)):
+    """Search Brazilian municipalities, importing the official IBGE list on first use."""
+    try:
+        _ensure_cities_loaded()
+        term = _normalize_city(query.strip())
+        if len(term) < 2:
+            return {"items": [], "count": 0, "source": "IBGE"}
+        with engine.connect() as connection:
+            rows = connection.execute(text("""
+                SELECT ibge_id, name, state, name || ' - ' || state AS label
+                FROM brazil_cities
+                WHERE name_normalized LIKE :pattern
+                ORDER BY CASE WHEN name_normalized LIKE :prefix THEN 0 ELSE 1 END, name, state
+                LIMIT :limit
+            """), {"pattern": f"%{term}%", "prefix": f"{term}%", "limit": limit}).mappings().all()
+        return {"items": [dict(row) for row in rows], "count": len(rows), "source": "IBGE"}
+    except HTTPException:
+        raise
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=503, detail="Banco indisponível ao consultar os municípios.") from exc
 
 
 @router.get("/vehicles", tags=["vehicles"])
