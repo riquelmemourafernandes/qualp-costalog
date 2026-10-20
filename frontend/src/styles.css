@@ -58,3 +58,22 @@
 .antt-return-distance{grid-column:1/-1}
 .antt-return-distance input{width:100%;border:1px solid #dfe5e9;border-radius:8px;padding:11px;font:inherit}
 .antt-return-distance small{display:block;font-size:10px;line-height:1.5;color:#7b8993;margin-top:6px}
+
+
+/* Improve form spacing and prevent labels/fields from crowding or overlapping */
+.form-panel form>label:not(.trip-toggle),.field label{line-height:1.45;margin:18px 0 9px}
+.form-panel .input-wrap{min-height:44px}
+.form-panel .field-row{column-gap:16px;row-gap:12px;margin-top:4px}
+.form-panel .field{min-width:0}
+.form-panel .field input,.form-panel .field select{display:block;min-height:44px;line-height:1.35}
+.form-panel .city-suggestions{margin:5px 0 12px;max-height:230px}
+.form-panel .city-help{margin:0 0 10px 27px;line-height:1.6}
+.form-panel .trip-toggle{margin:10px 0 14px;padding:14px;line-height:1.5}
+.form-panel .vehicle-meta{margin-top:12px;margin-bottom:6px;line-height:1.5}
+.form-panel .vehicle-form{gap:10px;margin-top:14px;padding:16px}
+.form-panel .route-button{margin-top:8px;line-height:1.5;white-space:normal}
+.form-panel .submit-button{line-height:1.5}
+@media(max-width:420px){
+  .form-panel .field-row{grid-template-columns:minmax(0,1fr);gap:8px}
+  .city-suggestion{align-items:flex-start;flex-direction:column;gap:4px}
+}
