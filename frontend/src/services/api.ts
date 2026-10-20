@@ -60,6 +60,19 @@ export type VehicleRecord = {
   consumption_km_l: number | string
 }
 
+export async function createVehicle(payload: Omit<VehicleRecord, 'id'>): Promise<VehicleRecord> {
+  const response = await fetch(`${API_URL}/api/v1/vehicles`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    throw new Error(body?.detail ?? 'Não foi possível salvar o veículo.')
+  }
+  return response.json()
+}
+
 export async function getVehicles(): Promise<VehicleRecord[]> {
   const response = await fetch(`${API_URL}/api/v1/vehicles`)
   if (!response.ok) {
