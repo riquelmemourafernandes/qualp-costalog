@@ -171,6 +171,12 @@ export default function App() {
               <div className="metrics"><div><span>DISTÂNCIA</span><strong>{result ? `${result.distance_km} km` : '—'}</strong></div><div><span>COMBUSTÍVEL</span><strong>{result ? `${result.fuel_liters.toLocaleString('pt-BR')} L` : '—'}</strong></div></div>
             </div>
             <div className="panel next-panel"><div className="panel-heading"><div className="heading-icon"><MapPin size={18} /></div><div><h2>Próximas etapas</h2><p>O que falta para uma consulta completa.</p></div></div><ul><li><span>01</span><div><strong>Roteamento rodoviário</strong><p>Obter distância e traçado de uma fonte adequada a veículos pesados.</p></div></li><li><span>02</span><div><strong>Base nacional de pedágios</strong><p>Importar tarifas oficiais por categoria e vigência.</p></div></li><li><span>03</span><div><strong>Histórico e cadastros</strong><p>Persistir veículos, consultas e auditoria no banco.</p></div></li></ul></div>
+            <div className="panel next-panel antt-panel">
+              <div className="panel-heading"><div className="heading-icon green"><Calculator size={18} /></div><div><h2>Piso mínimo de frete · ANTT</h2><p>Referência oficial para conferência do frete.</p></div></div>
+              <p>A tabela vigente foi atualizada pela Portaria SUROC nº 22/2026, com validade a partir de 30/09/2026. O cálculo oficial varia conforme tipo de carga, eixos carregados e modalidade de contratação.</p>
+              <a className="route-button antt-link" href="https://calculadorafrete.antt.gov.br/" target="_blank" rel="noreferrer">Consultar calculadora oficial da ANTT <ArrowRight size={16} /></a>
+              <p className="antt-footnote">Use a distância da rota calculada e a configuração correta do veículo. O piso mínimo não é o mesmo que o custo total da viagem e não inclui automaticamente pedágios.</p>
+            </div>
             <div className="panel next-panel">
               <div className="panel-heading"><div className="heading-icon"><RefreshCw size={18} /></div><div><h2>Consultas recentes</h2><p>Histórico salvo no banco de dados.</p></div></div>
               {history.length === 0 ? <p className="history-empty">{historyMessage || 'Nenhuma consulta salva ainda.'}</p> : <div className="history-list">{history.map(item => <div className="history-item" key={item.id}><div><strong>{item.origin} → {item.destination}</strong><p>{item.vehicle_name} · {item.distance_km ?? '—'} km</p></div><strong>{money(Number(item.estimated_total_brl ?? 0))}</strong></div>)}</div>}
