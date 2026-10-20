@@ -135,7 +135,7 @@ export type CitySuggestion = {
 let ibgeCitiesPromise: Promise<CitySuggestion[]> | null = null
 
 function normalizeCitySearch(value: string): string {
-  return value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase('pt-BR').trim()
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').trim()
 }
 
 async function getIbgeCities(): Promise<CitySuggestion[]> {
@@ -146,7 +146,7 @@ async function getIbgeCities(): Promise<CitySuggestion[]> {
         const rows = await response.json()
         return rows.map((city: any) => {
           const uf = city.microrregiao?.mesorregiao?.UF ?? city['regiao-imediata']?.['regiao-intermediaria']?.UF
-          return { ibge_id: Number(city.id), name: String(city.nome ?? ''), state: String(uf?.sigla ?? ''), label: `${String(city.nome ?? '')} - ${String(uf?.sigla ?? '')}` } as CitySuggestion
+          return { ibge_id: Number(city.id), name: String(city.nome ?? ''), state: String(uf?.sigla ?? ''), label: String(city.nome ?? '') + ' - ' + String(uf?.sigla ?? '') } as CitySuggestion
         }).filter((city: CitySuggestion) => city.name && city.state)
       })
       .catch(error => { ibgeCitiesPromise = null; throw error })
@@ -155,17 +155,21 @@ async function getIbgeCities(): Promise<CitySuggestion[]> {
 }
 
 export async function searchCities(query: string): Promise<CitySuggestion[]> {
-  const term = query.trim()
-  if (term.length < 2) return []
+  const rawTerm = query.trim()
+  if (rawTerm.length < 2) return []
+  const cityTerm = rawTerm.split(' - ', 1)[0].trim()
+  const normalized = normalizeCitySearch(cityTerm)
+  if (normalized.length < 2) return []
+  // Normaliza antes de pesquisar para ignorar maiúsculas, minúsculas e acentos.
   try {
-    const response = await fetch(`${API_URL}/api/v1/cities?query=${encodeURIComponent(term)}&limit=12`)
-    if (!response.ok) throw new Error('A API do sistema não conseguiu consultar os municípios.')
-    const data = await response.json()
-    if (Array.isArray(data.items)) return data.items
+    const response = await fetch(API_URL + '/api/v1/cities?query=' + encodeURIComponent(normalized) + '&limit=12')
+    if (response.ok) {
+      const data = await response.json()
+      if (Array.isArray(data.items) && data.items.length > 0) return data.items
+    }
   } catch {
-    // Fallback para a API pública oficial do IBGE se o backend ou banco estiver indisponível.
+    // Se a API ou o banco estiverem indisponíveis, consulta a lista oficial do IBGE.
   }
-  const normalized = normalizeCitySearch(term.split(' - ', 1)[0])
   const cities = await getIbgeCities()
   return cities.filter(city => normalizeCitySearch(city.name).includes(normalized)).slice(0, 12)
 }
