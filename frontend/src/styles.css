@@ -101,3 +101,6 @@
 
 /* Destaque para os indicadores principais */
 .priority-cost-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:16px}.priority-cost{padding:15px;border:1px solid #dfe6e8;border-radius:10px}.priority-cost span{display:block;font-size:10px;font-weight:850;letter-spacing:1px;margin-bottom:8px}.priority-cost strong{display:block;font-size:28px;line-height:1.2;overflow-wrap:anywhere}.priority-cost small{display:block;font-size:11px;line-height:1.5;margin-top:6px}.freight-priority{background:#eff6d9;border:2px solid #c8dc7b;color:#29450d}.toll-priority{background:#fff7e8;border-color:#f0d7a5;color:#67430e}.fuel-priority{background:#eef6fb;border-color:#cfe3ef;color:#174a65}.antt-result{border:2px solid #bfd875;background:#eff6db;padding:17px}.antt-result strong{font-size:34px;color:#29450d}.map-panel{border:2px solid #d9e5c5}.route-map{height:390px}@media(max-width:520px){.priority-cost strong{font-size:23px}.route-map{height:300px}}
+.map-placeholder{min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:28px;text-align:center;color:#64748b;background:linear-gradient(135deg,#f8fafc,#eef4e7);border-radius:10px}
+.map-placeholder strong{font-size:17px;color:#263b2c}
+.map-placeholder p{max-width:340px;margin:0;font-size:13px;line-height:1.6}
