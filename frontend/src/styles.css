@@ -19,3 +19,7 @@
 .route-summary span{display:block;font-size:9px;letter-spacing:.8px;font-weight:800;color:#82909a;margin-bottom:5px}
 .route-summary strong{display:block;font-size:12px;line-height:1.45;color:#263640;overflow-wrap:anywhere}
 @media(max-width:420px){.route-summary{grid-template-columns:1fr}.vehicle-meta{align-items:flex-start}.text-button{margin-left:0}}
+
+.antt-panel>p{font-size:11px;line-height:1.6;color:#74838d;margin:0 0 12px}
+.antt-link{text-decoration:none;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.antt-footnote{margin-top:12px!important;font-size:10px!important}
