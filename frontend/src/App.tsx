@@ -34,7 +34,13 @@ const anttTableA: Record<AnttCargo, Partial<Record<number, AnttCoefficient>>> = 
 export default function App() {
   const [origin, setOrigin] = useState('Santos, SP')
   const [destination, setDestination] = useState('Campinas, SP')
-  const [citySuggestions, setCitySuggestions] = useState<CitySuggestion[]>([])
+  const [originSuggestions, setOriginSuggestions] = useState<CitySuggestion[]>([])
+  const [destinationSuggestions, setDestinationSuggestions] = useState<CitySuggestion[]>([])
+  const [selectedOrigin, setSelectedOrigin] = useState<CitySuggestion | null>(null)
+  const [selectedDestination, setSelectedDestination] = useState<CitySuggestion | null>(null)
+  const [roundTrip, setRoundTrip] = useState(false)
+  const [emptyReturn, setEmptyReturn] = useState(false)
+  const [emptyReturnDistance, setEmptyReturnDistance] = useState('180')
   const [distance, setDistance] = useState('180')
   const [vehicleOptions, setVehicleOptions] = useState(defaultVehicles)
   const [vehicle, setVehicle] = useState(defaultVehicles[1].name)
@@ -74,16 +80,18 @@ export default function App() {
   }, [])
 
 
-  async function updateCitySuggestions(value: string) {
-    if (value.trim().length < 2) {
-      setCitySuggestions([])
-      return
-    }
-    try {
-      setCitySuggestions(await searchCities(value))
-    } catch {
-      setCitySuggestions([])
-    }
+  async function updateOriginSuggestions(value: string) {
+    if (value.trim().length < 2) { setOriginSuggestions([]); return }
+    try { setOriginSuggestions(await searchCities(value)) } catch { setOriginSuggestions([]) }
+  }
+
+  async function updateDestinationSuggestions(value: string) {
+    if (value.trim().length < 2) { setDestinationSuggestions([]); return }
+    try { setDestinationSuggestions(await searchCities(value)) } catch { setDestinationSuggestions([]) }
+  }
+
+  function cityAddress(city: CitySuggestion) {
+    return `${city.name}, ${city.state}, Brasil`
   }
 
   function chooseVehicle(name: string) {
@@ -94,11 +102,15 @@ export default function App() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!selectedOrigin || !selectedDestination) {
+      setError('Selecione a origem e o destino na lista de municípios sugeridos antes de calcular.')
+      return
+    }
     setLoading(true)
     setError('')
     try {
       const estimate = await calculateEstimate({
-        origin, destination, distance_km: Number(distance),
+        origin: selectedOrigin.label, destination: selectedDestination.label, distance_km: Number(distance),
         consumption_km_l: Number(consumption), fuel_price_brl: Number(fuelPrice),
         toll_total_brl: Number(tolls), vehicle_name: vehicle,
       })
@@ -141,12 +153,30 @@ export default function App() {
   }
 
   async function requestRoute() {
+    if (!selectedOrigin || !selectedDestination) {
+      setRouteError('Selecione a origem e o destino na lista de municípios sugeridos antes de buscar a rota.')
+      return
+    }
     setRouteLoading(true)
     setRouteError('')
     try {
-      const route = await planRoute({ origin, destination, vehicle_name: vehicle })
+      const outbound = await planRoute({ origin: cityAddress(selectedOrigin), destination: cityAddress(selectedDestination), vehicle_name: vehicle })
+      let route = outbound
+      if (roundTrip) {
+        const returning = await planRoute({ origin: cityAddress(selectedDestination), destination: cityAddress(selectedOrigin), vehicle_name: vehicle })
+        route = {
+          ...outbound,
+          distance_km: Math.round((outbound.distance_km + returning.distance_km) * 100) / 100,
+          duration_minutes: outbound.duration_minutes + returning.duration_minutes,
+          geometry: { type: 'LineString', coordinates: [...outbound.geometry.coordinates, ...returning.geometry.coordinates.slice(1)] },
+          tolls: [...outbound.tolls, ...returning.tolls],
+          toll_count: outbound.tolls.length + returning.tolls.length,
+          note: 'Ida e volta calculadas separadamente para veículo pesado. ' + outbound.note,
+        }
+      }
       setPlannedRoute(route)
       setDistance(String(route.distance_km))
+      setEmptyReturnDistance(String(outbound.distance_km))
       setTolls('0')
       setResult(null)
       setHistoryMessage('Rota calculada. Faça o cálculo de custos para salvar esta consulta no histórico.')
@@ -158,8 +188,11 @@ export default function App() {
   }
 
   const anttCoefficient = anttTableA[anttCargo][Number(anttAxleCount)]
-  const anttDistance = Number(distance)
-  const anttFloor = anttCoefficient && anttDistance > 0 ? anttCoefficient.ccd * anttDistance + anttCoefficient.cc : null
+  const anttDistance = Number(distance) > 0 ? Number(distance) / (roundTrip && plannedRoute ? 2 : 1) : 0
+  const emptyDistance = Number(emptyReturnDistance)
+  const emptyReturnCost = emptyReturn && anttCoefficient && emptyDistance > 0 ? anttCoefficient.ccd * 0.92 * emptyDistance : 0
+  const anttFloorBase = anttCoefficient && anttDistance > 0 ? anttCoefficient.ccd * anttDistance + anttCoefficient.cc : null
+  const anttFloor = anttFloorBase === null ? null : anttFloorBase + emptyReturnCost
 
   return (
     <div className="app-shell">
@@ -180,8 +213,12 @@ export default function App() {
           <section className="panel form-panel">
             <div className="panel-heading"><div className="heading-icon"><Route size={18} /></div><div><h2>Dados da viagem</h2><p>Preencha o trajeto e os dados do veículo.</p></div></div>
             <form onSubmit={submit}>
-              <label>ORIGEM</label><div className="input-wrap"><MapPin size={17} /><input list="brazil-city-options" autoComplete="off" value={origin} onChange={e => { setOrigin(e.target.value); void updateCitySuggestions(e.target.value) }} required placeholder="Digite uma cidade..." /></div>
-              <label>DESTINO</label><div className="input-wrap"><MapPin size={17} /><input list="brazil-city-options" autoComplete="off" value={destination} onChange={e => { setDestination(e.target.value); void updateCitySuggestions(e.target.value) }} required placeholder="Digite uma cidade..." /></div><datalist id="brazil-city-options">{citySuggestions.map(city => <option key={city.ibge_id} value={city.label}>{city.name} - {city.state}</option>)}</datalist><small className="city-help">Digite pelo menos 2 letras e selecione a cidade e o estado na lista.</small>
+              <label>ORIGEM</label><div className="input-wrap"><MapPin size={17} /><input autoComplete="off" value={origin} onChange={e => { setOrigin(e.target.value); setSelectedOrigin(null); void updateOriginSuggestions(e.target.value) }} required placeholder="Digite o município..." /></div>
+              {originSuggestions.length > 0 && <div className="city-suggestions" role="listbox" aria-label="Sugestões de municípios de origem">{originSuggestions.map(city => <button type="button" role="option" key={city.ibge_id} className="city-suggestion" onClick={() => { setOrigin(city.label); setSelectedOrigin(city); setOriginSuggestions([]) }}><strong>{city.name}</strong><span>{city.state} · Código IBGE {city.ibge_id}</span></button>)}</div>}
+              <label>DESTINO</label><div className="input-wrap"><MapPin size={17} /><input autoComplete="off" value={destination} onChange={e => { setDestination(e.target.value); setSelectedDestination(null); void updateDestinationSuggestions(e.target.value) }} required placeholder="Digite o município..." /></div>
+              {destinationSuggestions.length > 0 && <div className="city-suggestions" role="listbox" aria-label="Sugestões de municípios de destino">{destinationSuggestions.map(city => <button type="button" role="option" key={city.ibge_id} className="city-suggestion" onClick={() => { setDestination(city.label); setSelectedDestination(city); setDestinationSuggestions([]) }}><strong>{city.name}</strong><span>{city.state} · Código IBGE {city.ibge_id}</span></button>)}</div>}
+              <small className="city-help">Escolha uma das sugestões oficiais do IBGE. O sistema não usará um município aproximado automaticamente.</small>
+              <label className="trip-toggle"><input type="checkbox" checked={roundTrip} onChange={e => { setRoundTrip(e.target.checked); setPlannedRoute(null) }} /><span><strong>Calcular ida e volta</strong><small>Traça os dois sentidos separadamente e soma distância, tempo e pedágios encontrados.</small></span></label>
               <button className="route-button" type="button" onClick={requestRoute} disabled={routeLoading}>{routeLoading ? 'Buscando rota para veículo pesado...' : 'Planejar rota real para caminhão'}</button>
               {routeError && <p className="error-message">{routeError}</p>}
               <div className="field-row"><div className="field"><label>DISTÂNCIA (KM)</label><input type="number" min="0.1" step="0.1" value={distance} onChange={e => setDistance(e.target.value)} required /></div><div className="field"><label>VEÍCULO</label><select value={vehicle} onChange={e => chooseVehicle(e.target.value)}>{vehicleOptions.map(item => <option key={item.name}>{item.name}</option>)}</select></div></div>
@@ -220,7 +257,9 @@ export default function App() {
                 <div className="antt-result"><span>FRETE MÍNIMO ESTIMADO (CCD × km + CC)</span><strong>{anttFloor === null ? '—' : money(anttFloor)}</strong><small>{anttCoefficient ? 'CCD: R$ ' + anttCoefficient.ccd.toFixed(4).replace('.', ',') + '/km · CC (carga/descarga): ' + money(anttCoefficient.cc) : 'Configuração não disponível na tabela selecionada.'}</small></div>
               </div>
               <a className="route-button antt-link" href="https://calculadorafrete.antt.gov.br/" target="_blank" rel="noreferrer">Conferir no calculador oficial da ANTT <ArrowRight size={16} /></a>
-              <p className="antt-footnote">Esta estimativa cobre somente a Tabela A para cargas conteinerizadas ou gerais. Não calcula retorno vazio, alto desempenho nem contratação apenas do cavalo-mecânico (Tabelas B, C e D). Confirme o enquadramento no calculador oficial. Pedágios e custo operacional são valores separados.</p>
+              <label className="trip-toggle antt-empty-toggle"><input type="checkbox" checked={emptyReturn} onChange={e => setEmptyReturn(e.target.checked)} /><span><strong>Considerar retorno vazio no piso mínimo</strong><small>Use somente quando aplicável pela regra da ANTT (ex.: transporte de contêiner ou frota dedicada/fidelizada elegível).</small></span></label>
+              {emptyReturn && <div className="field antt-return-distance"><label>DISTÂNCIA DO RETORNO VAZIO (KM)</label><input type="number" min="0.1" step="0.1" value={emptyReturnDistance} onChange={e => setEmptyReturnDistance(e.target.value)} required /><small>Calculado como 92% do CCD × distância de retorno, somado ao piso da ida.</small></div>}
+              <p className="antt-footnote">Estimativa da Tabela A para carga conteinerizada ou geral. O retorno vazio é somado apenas quando a hipótese normativa se aplica: 92% do CCD × distância de retorno. A ida e volta operacional não significa, por si só, retorno vazio obrigatório. Não inclui Tabelas B, C e D. Confirme os dados no calculador oficial da ANTT.</p>
             </div>
             <div className="panel next-panel">
               <div className="panel-heading"><div className="heading-icon"><RefreshCw size={18} /></div><div><h2>Consultas recentes</h2><p>Histórico salvo no banco de dados.</p></div></div>
