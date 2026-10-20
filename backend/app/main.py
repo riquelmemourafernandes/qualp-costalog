@@ -2,12 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router
+from app.api.routing import router as routing_router
 from app.core.config import settings
 
 app = FastAPI(
     title="QualP Costalog API",
     version="1.0.0",
-    description="API inicial para estimativas de rotas, pedágios e custos de transporte.",
+    description="API para estimativas e planejamento de rotas de veículos pesados, com tarifas de pedágio auditáveis.",
 )
 
 app.add_middleware(
@@ -18,6 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(routing_router, prefix="/api/v1")
 app.include_router(router, prefix="/api/v1")
 
 
