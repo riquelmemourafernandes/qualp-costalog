@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Calculator, Fuel, MapPin, Route, Truck, CircleAlert, ArrowRight, RefreshCw } from 'lucide-react'
-import { calculateEstimate, getRouteHistory, getVehicles, type EstimateResponse, type RouteHistoryItem } from './services/api'
+import { calculateEstimate, getRouteHistory, getVehicles, planRoute, type EstimateResponse, type RouteHistoryItem, type PlannedRoute } from './services/api'
+import RouteMap from './RouteMap'
 
 const defaultVehicles = [
   { name: 'Caminhão 2 eixos', consumption: 3.0, axles: 2 },
@@ -26,6 +27,9 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [history, setHistory] = useState<RouteHistoryItem[]>([])
   const [historyMessage, setHistoryMessage] = useState('O histórico será carregado após a primeira consulta.')
+  const [plannedRoute, setPlannedRoute] = useState<PlannedRoute | null>(null)
+  const [routeLoading, setRouteLoading] = useState(false)
+  const [routeError, setRouteError] = useState('')
 
   useEffect(() => {
     getVehicles().then(records => {
@@ -88,6 +92,8 @@ export default function App() {
             <form onSubmit={submit}>
               <label>ORIGEM</label><div className="input-wrap"><MapPin size={17} /><input value={origin} onChange={e => setOrigin(e.target.value)} required placeholder="Cidade de origem" /></div>
               <label>DESTINO</label><div className="input-wrap"><MapPin size={17} /><input value={destination} onChange={e => setDestination(e.target.value)} required placeholder="Cidade de destino" /></div>
+              <button className="route-button" type="button" onClick={requestRoute} disabled={routeLoading}>{routeLoading ? 'Buscando rota para veículo pesado...' : 'Planejar rota real para caminhão'}</button>
+              {routeError && <p className="error-message">{routeError}</p>}
               <div className="field-row"><div className="field"><label>DISTÂNCIA (KM)</label><input type="number" min="0.1" step="0.1" value={distance} onChange={e => setDistance(e.target.value)} required /></div><div className="field"><label>VEÍCULO</label><select value={vehicle} onChange={e => chooseVehicle(e.target.value)}>{vehicleOptions.map(item => <option key={item.name}>{item.name}</option>)}</select></div></div>
               <div className="field-row"><div className="field"><label>CONSUMO (KM/L)</label><input type="number" min="0.1" step="0.1" value={consumption} onChange={e => setConsumption(e.target.value)} required /></div><div className="field"><label>DIESEL (R$/L)</label><input type="number" min="0.01" step="0.01" value={fuelPrice} onChange={e => setFuelPrice(e.target.value)} required /></div></div>
               <label>PEDÁGIOS TOTAIS (R$)</label><div className="input-wrap"><span className="currency-prefix">R$</span><input type="number" min="0" step="0.01" value={tolls} onChange={e => setTolls(e.target.value)} required /></div>
@@ -97,6 +103,7 @@ export default function App() {
           </section>
 
           <section className="results-column">
+            {plannedRoute && <div className="panel map-panel"><div className="panel-heading"><div className="heading-icon"><MapPin size={18} /></div><div><h2>Traçado da rota</h2><p>{plannedRoute.distance_km} km · {Math.floor(plannedRoute.duration_minutes / 60)} h {plannedRoute.duration_minutes % 60} min estimados</p></div></div><RouteMap route={plannedRoute} /><p className="route-note">{plannedRoute.note}</p><div className="toll-list"><strong>Pedágios encontrados na base local: {plannedRoute.toll_count}</strong>{plannedRoute.tolls.length === 0 ? <p>Nenhuma tarifa local vigente foi encontrada perto do traçado. Isso não garante que o percurso não tenha pedágios.</p> : plannedRoute.tolls.map((toll, index) => <div className="history-item" key={toll.id + toll.vehicle_category + index}><div><strong>{toll.name} · {toll.highway}</strong><p>{toll.vehicle_category} · Fonte: {toll.source_name}</p></div><strong>{money(Number(toll.amount_brl))}</strong></div>)}</div></div>}
             <div className="panel result-panel"><div className="panel-heading"><div className="heading-icon green"><Fuel size={18} /></div><div><h2>Resumo de custos</h2><p>{result ? `${result.origin} → ${result.destination}` : 'O resultado aparecerá após o cálculo.'}</p></div></div>
               <div className="total-card"><span>CUSTO ESTIMADO TOTAL</span><strong>{result ? money(result.estimated_total_brl) : 'R$ —'}</strong><small>Combustível + pedágios informados</small></div>
               <div className="cost-line"><div><span className="cost-dot fuel-dot" /><span>Combustível</span></div><strong>{result ? money(result.fuel_cost_brl) : '—'}</strong></div>
