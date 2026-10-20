@@ -1,12 +1,22 @@
 from fastapi import APIRouter, HTTPException
 from app.schemas import RouteCalculateRequest, RouteCalculateResponse, VehicleCreate
+from app.db import engine, ensure_app_tables
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 router = APIRouter()
 
 
 @router.get("/vehicles", tags=["vehicles"])
 def list_vehicles():
-    # MVP: catálogo demonstrativo em memória; persistência será adicionada na próxima etapa.
+    try:
+        ensure_app_tables()
+        with engine.begin() as connection:
+            rows = connection.execute(text("SELECT id, name, vehicle_type, axles, consumption_km_l FROM vehicle_profiles ORDER BY name")).mappings().all()
+        if rows:
+            return [dict(row) for row in rows]
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=503, detail="Banco indisponível. Confira DATABASE_URL.") from exc
     return [
         {"id": 1, "name": "Caminhão 2 eixos", "vehicle_type": "truck", "axles": 2, "consumption_km_l": 3.0},
         {"id": 2, "name": "Carreta 6 eixos", "vehicle_type": "carreta", "axles": 6, "consumption_km_l": 2.2},
@@ -17,7 +27,19 @@ def list_vehicles():
 
 @router.post("/vehicles", tags=["vehicles"], status_code=201)
 def create_vehicle(vehicle: VehicleCreate):
-    raise HTTPException(status_code=501, detail="Cadastro persistente de veículos será habilitado na próxima etapa.")
+    try:
+        ensure_app_tables()
+        with engine.begin() as connection:
+            row = connection.execute(text("""
+                INSERT INTO vehicle_profiles (name, vehicle_type, axles, consumption_km_l)
+                VALUES (:name, :vehicle_type, :axles, :consumption_km_l)
+                RETURNING id, name, vehicle_type, axles, consumption_km_l
+            """), vehicle.model_dump()).mappings().one()
+        return dict(row)
+    except SQLAlchemyError as exc:
+        if "unique" in str(exc).lower() or "duplicate" in str(exc).lower():
+            raise HTTPException(status_code=409, detail="Já existe um veículo com esse nome.") from exc
+        raise HTTPException(status_code=503, detail="Não foi possível salvar o veículo no banco.") from exc
 
 
 @router.post("/routes/calculate", response_model=RouteCalculateResponse, tags=["routes"])
