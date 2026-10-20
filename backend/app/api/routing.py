@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 from datetime import date
 import httpx
-from fastapi import APIRouter, Header, HTTPException, File, UploadFile, UploadFile, File
+from fastapi import APIRouter, Header, HTTPException, File, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
