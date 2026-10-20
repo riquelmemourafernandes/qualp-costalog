@@ -50,3 +50,21 @@ export async function getRouteHistory(): Promise<RouteHistoryItem[]> {
   const data = await response.json()
   return data.items ?? []
 }
+
+
+export type VehicleRecord = {
+  id: number
+  name: string
+  vehicle_type: string
+  axles: number
+  consumption_km_l: number | string
+}
+
+export async function getVehicles(): Promise<VehicleRecord[]> {
+  const response = await fetch(`${API_URL}/api/v1/vehicles`)
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    throw new Error(body?.detail ?? 'Não foi possível carregar os veículos.')
+  }
+  return response.json()
+}
