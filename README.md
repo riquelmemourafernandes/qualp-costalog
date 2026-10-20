@@ -7,7 +7,8 @@ Sistema interno para estimar rotas, pedágios e custos operacionais de transport
 ## Objetivos
 
 - Calcular estimativas de combustível a partir da distância, consumo e preço por litro.
-- Cadastrar veículos e suas características operacionais.
+- Cadastrar veículos e suas características operacionais, com persistência no PostgreSQL.
+- Registrar e consultar o histórico das estimativas quando o banco estiver conectado.
 - Manter praças e tarifas de pedágio com fonte e vigência.
 - Exibir rota e pontos de pedágio em um mapa.
 - Guardar histórico e permitir auditoria dos valores calculados.
@@ -42,5 +43,5 @@ A primeira versão não possui base nacional validada de praças/tarifas nem rot
 
 - `frontend/`: interface web.
 - `backend/`: API e regras de cálculo.
-- `infra/`: inicialização do banco.
+- `infra/`: inicialização do banco, incluindo o catálogo de veículos.
 - `data/imports/`: orientações para importação auditável.
