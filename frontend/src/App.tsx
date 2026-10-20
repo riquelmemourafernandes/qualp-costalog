@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Calculator, Fuel, MapPin, Route, Truck, CircleAlert, ArrowRight, RefreshCw } from 'lucide-react'
-import { calculateEstimate, type EstimateResponse } from './services/api'
+import { calculateEstimate, getRouteHistory, type EstimateResponse, type RouteHistoryItem } from './services/api'
 
 const vehicles = [
   { name: 'Caminhão 2 eixos', consumption: 3.0, axles: 2 },
@@ -23,6 +23,8 @@ export default function App() {
   const [result, setResult] = useState<EstimateResponse | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [history, setHistory] = useState<RouteHistoryItem[]>([])
+  const [historyMessage, setHistoryMessage] = useState('O histórico será carregado após a primeira consulta.')
 
   function chooseVehicle(name: string) {
     setVehicle(name)
@@ -41,6 +43,12 @@ export default function App() {
         toll_total_brl: Number(tolls), vehicle_name: vehicle,
       })
       setResult(estimate)
+      try {
+        setHistory(await getRouteHistory())
+        setHistoryMessage('')
+      } catch {
+        setHistoryMessage('O histórico depende da conexão com o banco de dados.')
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro inesperado ao calcular.')
     } finally {
@@ -85,6 +93,10 @@ export default function App() {
               <div className="metrics"><div><span>DISTÂNCIA</span><strong>{result ? `${result.distance_km} km` : '—'}</strong></div><div><span>COMBUSTÍVEL</span><strong>{result ? `${result.fuel_liters.toLocaleString('pt-BR')} L` : '—'}</strong></div></div>
             </div>
             <div className="panel next-panel"><div className="panel-heading"><div className="heading-icon"><MapPin size={18} /></div><div><h2>Próximas etapas</h2><p>O que falta para uma consulta completa.</p></div></div><ul><li><span>01</span><div><strong>Roteamento rodoviário</strong><p>Obter distância e traçado de uma fonte adequada a veículos pesados.</p></div></li><li><span>02</span><div><strong>Base nacional de pedágios</strong><p>Importar tarifas oficiais por categoria e vigência.</p></div></li><li><span>03</span><div><strong>Histórico e cadastros</strong><p>Persistir veículos, consultas e auditoria no banco.</p></div></li></ul></div>
+            <div className="panel next-panel">
+              <div className="panel-heading"><div className="heading-icon"><RefreshCw size={18} /></div><div><h2>Consultas recentes</h2><p>Histórico salvo no banco de dados.</p></div></div>
+              {history.length === 0 ? <p className="history-empty">{historyMessage || 'Nenhuma consulta salva ainda.'}</p> : <div className="history-list">{history.map(item => <div className="history-item" key={item.id}><div><strong>{item.origin} → {item.destination}</strong><p>{item.vehicle_name} · {item.distance_km ?? '—'} km</p></div><strong>{money(Number(item.estimated_total_brl ?? 0))}</strong></div>)}</div>}
+            </div>
           </section>
         </div>
         <footer>QUALP COSTALOG · Ferramenta interna em desenvolvimento <span>Valores estimados, sujeitos à validação.</span></footer>
