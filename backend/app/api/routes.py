@@ -59,7 +59,7 @@ def calculate_route(request: RouteCalculateRequest):
     liters = request.distance_km / request.consumption_km_l
     fuel_cost = liters * request.fuel_price_brl
     total = fuel_cost + request.toll_total_brl
-    return RouteCalculateResponse(
+    result = RouteCalculateResponse(
         origin=request.origin,
         destination=request.destination,
         distance_km=round(request.distance_km, 2),
@@ -72,6 +72,24 @@ def calculate_route(request: RouteCalculateRequest):
         estimated_total_brl=round(total, 2),
         note="Estimativa de combustível. Distância e pedágios são informados manualmente; não representa rota calculada nem base nacional validada de tarifas.",
     )
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("""
+                INSERT INTO route_searches
+                    (origin, destination, distance_km, vehicle_name, consumption_km_l,
+                     fuel_price_brl, fuel_liters, fuel_cost_brl, toll_total_brl,
+                     estimated_total_brl, routing_provider)
+                VALUES
+                    (:origin, :destination, :distance_km, :vehicle_name, :consumption_km_l,
+                     :fuel_price_brl, :fuel_liters, :fuel_cost_brl, :toll_total_brl,
+                     :estimated_total_brl, 'manual')
+            """), {
+                **request.model_dump(), "fuel_liters": round(liters, 2),
+                "fuel_cost_brl": round(fuel_cost, 2), "estimated_total_brl": round(total, 2),
+            })
+    except SQLAlchemyError:
+        result.note += " O histórico não foi salvo porque o banco está indisponível."
+    return result
 
 
 @router.get("/tolls", tags=["tolls"])
@@ -80,5 +98,17 @@ def list_tolls():
 
 
 @router.get("/routes/history", tags=["routes"])
-def route_history():
-    return {"items": [], "count": 0, "note": "Histórico persistente será habilitado quando o banco e as tabelas de aplicação estiverem conectados."}
+def route_history(limit: int = 50):
+    if limit < 1 or limit > 200:
+        raise HTTPException(status_code=422, detail="O limite deve ficar entre 1 e 200.")
+    try:
+        with engine.connect() as connection:
+            rows = connection.execute(text("""
+                SELECT id, origin, destination, distance_km, vehicle_name,
+                       consumption_km_l, fuel_price_brl, fuel_liters, fuel_cost_brl,
+                       toll_total_brl, estimated_total_brl, routing_provider, created_at
+                FROM route_searches ORDER BY created_at DESC LIMIT :limit
+            """), {"limit": limit}).mappings().all()
+        return {"items": [dict(row) for row in rows], "count": len(rows)}
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=503, detail="Banco indisponível ou tabela de histórico não inicializada.") from exc
