@@ -11,7 +11,19 @@ router = APIRouter()
 def list_vehicles():
     try:
         ensure_app_tables()
+        defaults = [
+            {"name": "Caminhão 2 eixos", "vehicle_type": "truck", "axles": 2, "consumption_km_l": 3.0},
+            {"name": "Carreta 6 eixos", "vehicle_type": "carreta", "axles": 6, "consumption_km_l": 2.2},
+            {"name": "LS", "vehicle_type": "LS", "axles": 6, "consumption_km_l": 2.0},
+            {"name": "Rodotrem", "vehicle_type": "rodotrem", "axles": 9, "consumption_km_l": 1.6},
+        ]
         with engine.begin() as connection:
+            for item in defaults:
+                connection.execute(text("""
+                    INSERT INTO vehicle_profiles (name, vehicle_type, axles, consumption_km_l)
+                    VALUES (:name, :vehicle_type, :axles, :consumption_km_l)
+                    ON CONFLICT (name) DO NOTHING
+                """), item)
             rows = connection.execute(text("SELECT id, name, vehicle_type, axles, consumption_km_l FROM vehicle_profiles ORDER BY name")).mappings().all()
         if rows:
             return [dict(row) for row in rows]
