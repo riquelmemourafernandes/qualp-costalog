@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Calculator, Fuel, MapPin, Route, Truck, CircleAlert, ArrowRight, RefreshCw } from 'lucide-react'
-import { calculateEstimate, createVehicle, getRouteHistory, getVehicles, planRoute, type EstimateResponse, type RouteHistoryItem, type PlannedRoute, searchCities, type CitySuggestion } from './services/api'
+import { calculateEstimate, createVehicle, getRouteHistory, getVehicles, planRoute, importTollsCsv, type EstimateResponse, type RouteHistoryItem, type PlannedRoute, searchCities, type CitySuggestion } from './services/api'
 import RouteMap from './RouteMap'
 
 const defaultVehicles = [
@@ -64,6 +64,10 @@ export default function App() {
   const [vehicleMessage, setVehicleMessage] = useState('')
   const [anttCargo, setAnttCargo] = useState<AnttCargo>('conteinerizada')
   const [anttAxleCount, setAnttAxleCount] = useState('6')
+  const [tollAdminToken, setTollAdminToken] = useState('')
+  const [tollCsvFile, setTollCsvFile] = useState<File | null>(null)
+  const [tollImportLoading, setTollImportLoading] = useState(false)
+  const [tollImportMessage, setTollImportMessage] = useState('')
 
   useEffect(() => {
     getVehicles().then(records => {
@@ -125,6 +129,24 @@ export default function App() {
       setError(e instanceof Error ? e.message : 'Erro inesperado ao calcular.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function uploadTollDatabase() {
+    if (!tollCsvFile || !tollAdminToken.trim()) {
+      setTollImportMessage('Selecione o CSV e informe o token administrativo.')
+      return
+    }
+    setTollImportLoading(true)
+    setTollImportMessage('')
+    try {
+      const response = await importTollsCsv(tollCsvFile, tollAdminToken.trim())
+      setTollImportMessage(response.message)
+      setTollCsvFile(null)
+    } catch (e) {
+      setTollImportMessage(e instanceof Error ? e.message : 'Falha na importação do CSV.')
+    } finally {
+      setTollImportLoading(false)
     }
   }
 
@@ -248,6 +270,20 @@ export default function App() {
               <div className="metrics"><div><span>DISTÂNCIA</span><strong>{result ? `${result.distance_km} km` : '—'}</strong></div><div><span>COMBUSTÍVEL</span><strong>{result ? `${result.fuel_liters.toLocaleString('pt-BR')} L` : '—'}</strong></div></div>
             </div>
             <div className="panel next-panel"><div className="panel-heading"><div className="heading-icon"><MapPin size={18} /></div><div><h2>Próximas etapas</h2><p>O que falta para uma consulta completa.</p></div></div><ul><li><span>01</span><div><strong>Roteamento rodoviário</strong><p>Obter distância e traçado de uma fonte adequada a veículos pesados.</p></div></li><li><span>02</span><div><strong>Base nacional de pedágios</strong><p>Importar tarifas oficiais por categoria e vigência.</p></div></li><li><span>03</span><div><strong>Histórico e cadastros</strong><p>Persistir veículos, consultas e auditoria no banco.</p></div></li></ul></div>
+
+
+            <div className="panel next-panel toll-admin-panel">
+              <div className="panel-heading"><div className="heading-icon"><MapPin size={18} /></div><div><h2>Base de pedágios</h2><p>Importe tarifas auditadas por CSV.</p></div></div>
+              <p>Use somente tarifas com fonte oficial, coordenadas da praça, categoria do veículo e vigência. O sistema ignora duplicatas e não cria preços estimados.</p>
+              <label>TOKEN ADMINISTRATIVO</label>
+              <input className="admin-token-input" type="password" autoComplete="off" value={tollAdminToken} onChange={e => setTollAdminToken(e.target.value)} placeholder="Token configurado no servidor" />
+              <label>ARQUIVO CSV</label>
+              <input className="toll-file-input" type="file" accept=".csv,text/csv" onChange={e => setTollCsvFile(e.target.files?.[0] ?? null)} />
+              <button className="route-button" type="button" disabled={tollImportLoading || !tollCsvFile || !tollAdminToken.trim()} onClick={() => void uploadTollDatabase()}>{tollImportLoading ? 'Importando tarifas...' : 'Importar base de pedágios'}</button>
+              {tollImportMessage && <p className={tollImportMessage.startsWith('Importação concluída') ? 'success-message' : 'error-message'}>{tollImportMessage}</p>}
+              <p className="antt-footnote">Formato CSV: name, highway, state, latitude, longitude, vehicle_category, amount_brl, valid_from, valid_until, source_name, source_url. Vigências no formato AAAA-MM-DD; deixe valid_until vazio para tarifa sem data final definida.</p>
+              <a className="route-button antt-link" href="https://www.gov.br/antt/pt-br/assuntos/rodovias/concessionarias" target="_blank" rel="noreferrer">Consultar fontes oficiais da ANTT <ArrowRight size={16} /></a>
+            </div>
 
             <div className="panel next-panel antt-panel">
               <div className="panel-heading"><div className="heading-icon green"><Calculator size={18} /></div><div><h2>Piso mínimo de frete · ANTT</h2><p>Estimativa integrada à distância desta viagem.</p></div></div>
