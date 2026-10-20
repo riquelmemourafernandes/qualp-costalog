@@ -23,3 +23,17 @@
 .antt-panel>p{font-size:11px;line-height:1.6;color:#74838d;margin:0 0 12px}
 .antt-link{text-decoration:none;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .antt-footnote{margin-top:12px!important;font-size:10px!important}
+
+
+/* Integrated ANTT floor estimate */
+.antt-calculator{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+.antt-calculator .field{min-width:0}
+.antt-calculator .field label{display:block;font-size:9px;letter-spacing:.8px;font-weight:800;color:#778590;margin:0 0 7px}
+.antt-calculator select{width:100%;min-width:0;border:1px solid #dfe5e9;border-radius:8px;padding:11px 9px;font:inherit;font-size:12px;color:#273640;background:#fff}
+.antt-distance,.antt-result{grid-column:1/-1;border:1px solid #e6ebdf;background:#f8faf5;border-radius:9px;padding:13px}
+.antt-distance span,.antt-result span{display:block;font-size:9px;letter-spacing:.7px;font-weight:800;color:#748079;margin-bottom:7px}
+.antt-distance strong{display:block;font-size:14px;color:#263640}
+.antt-distance small,.antt-result small{display:block;font-size:10px;line-height:1.5;color:#7b8993;margin-top:6px}
+.antt-result{background:#f1f6e9;border-color:#dfe8ce}
+.antt-result strong{display:block;font-size:23px;line-height:1.25;color:#36551b;overflow-wrap:anywhere}
+@media(max-width:420px){.antt-calculator{grid-template-columns:1fr}.antt-distance,.antt-result{grid-column:auto}}
