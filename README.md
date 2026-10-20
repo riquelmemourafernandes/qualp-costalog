@@ -38,6 +38,10 @@ Sem a chave de roteamento, o sistema continua permitindo cálculos manuais, mas 
 
 Cada tarifa deve conter categoria veicular, valor, início/fim de vigência e fonte. O sistema não inventa tarifas. A API de rotas só mostra praças que estejam na base local, próximas ao traçado e com tarifa vigente. Uma base vazia ou incompleta não significa que não existam pedágios no caminho.
 
+## Importar tarifas oficiais
+
+O importador CSV está em `backend/app/importers/import_tolls_csv.py`. O arquivo deve ter as colunas `name, highway, state, latitude, longitude, vehicle_category, amount_brl, valid_from, valid_until, source_name, source_url`. Execute `python -m app.importers.import_tolls_csv arquivo.csv` com `DATABASE_URL` apontando para o PostgreSQL/PostGIS correto. O importador valida datas, coordenadas, valores, campos obrigatórios e ignora tarifas duplicadas. Use apenas dados cuja fonte e vigência possam ser comprovadas.
+
 ## Publicar na Vercel
 
 - Importe o repositório e defina **Root Directory** como `frontend`.
