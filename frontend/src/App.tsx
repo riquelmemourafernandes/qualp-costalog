@@ -174,9 +174,11 @@ export default function App() {
           note: 'Ida e volta calculadas separadamente para veículo pesado. ' + outbound.note,
         }
       }
+      // Distância operacional exibida e usada nos cálculos fica em quilômetros inteiros.
+      route = { ...route, distance_km: Math.round(route.distance_km) }
       setPlannedRoute(route)
       setDistance(String(route.distance_km))
-      setEmptyReturnDistance(String(outbound.distance_km))
+      setEmptyReturnDistance(String(Math.round(outbound.distance_km)))
       setTolls(String(route.tolls.reduce((sum, toll) => sum + Number(toll.amount_brl), 0)))
       setResult(null)
       setHistoryMessage('Rota calculada. Faça o cálculo de custos para salvar esta consulta no histórico.')
