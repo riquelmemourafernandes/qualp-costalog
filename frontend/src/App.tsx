@@ -82,8 +82,7 @@ export default function App() {
     }
   }
 
-  async function saveVehicle(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function saveVehicle() {
     setVehicleSaveLoading(true)
     setVehicleMessage('')
     try {
@@ -149,12 +148,12 @@ export default function App() {
               {routeError && <p className="error-message">{routeError}</p>}
               <div className="field-row"><div className="field"><label>DISTÂNCIA (KM)</label><input type="number" min="0.1" step="0.1" value={distance} onChange={e => setDistance(e.target.value)} required /></div><div className="field"><label>VEÍCULO</label><select value={vehicle} onChange={e => chooseVehicle(e.target.value)}>{vehicleOptions.map(item => <option key={item.name}>{item.name}</option>)}</select></div></div>
               <div className="vehicle-meta"><span>Configuração selecionada</span><strong>{vehicleOptions.find(item => item.name === vehicle)?.axles ?? 6} eixos</strong><button type="button" className="text-button" onClick={() => { setShowVehicleForm(v => !v); setVehicleMessage('') }}>{showVehicleForm ? 'Cancelar' : '+ Cadastrar veículo'}</button></div>
-              {showVehicleForm && <form className="vehicle-form" onSubmit={saveVehicle}>
+              {showVehicleForm && <div className="vehicle-form">
                 <label>NOME DO VEÍCULO</label><input value={vehicleNameInput} onChange={e => setVehicleNameInput(e.target.value)} required minLength={2} maxLength={80} placeholder="Ex.: Carreta 7 eixos" />
                 <div className="field-row"><div className="field"><label>TIPO</label><select value={vehicleTypeInput} onChange={e => setVehicleTypeInput(e.target.value)}><option value="truck">Caminhão</option><option value="carreta">Carreta</option><option value="LS">LS</option><option value="rodotrem">Rodotrem</option><option value="outro">Outro</option></select></div><div className="field"><label>NÚMERO DE EIXOS</label><input type="number" min="2" max="12" step="1" value={vehicleAxlesInput} onChange={e => setVehicleAxlesInput(e.target.value)} required /></div></div>
                 <label>CONSUMO MÉDIO (KM/L)</label><input type="number" min="0.1" max="20" step="0.1" value={vehicleConsumptionInput} onChange={e => setVehicleConsumptionInput(e.target.value)} required />
-                <button className="route-button" type="submit" disabled={vehicleSaveLoading}>{vehicleSaveLoading ? 'Salvando...' : 'Salvar veículo'}</button>
-              </form>}
+                <button className="route-button" type="button" disabled={vehicleSaveLoading || !vehicleNameInput.trim()} onClick={() => saveVehicle()}>{vehicleSaveLoading ? 'Salvando...' : 'Salvar veículo'}</button>
+              </div>}
               {vehicleMessage && <p className={vehicleMessage.includes('salvo') ? 'success-message' : 'error-message'}>{vehicleMessage}</p>}
               <div className="field-row"><div className="field"><label>CONSUMO (KM/L)</label><input type="number" min="0.1" step="0.1" value={consumption} onChange={e => setConsumption(e.target.value)} required /></div><div className="field"><label>DIESEL (R$/L)</label><input type="number" min="0.01" step="0.01" value={fuelPrice} onChange={e => setFuelPrice(e.target.value)} required /></div></div>
               <label>PEDÁGIOS TOTAIS (R$)</label><div className="input-wrap"><span className="currency-prefix">R$</span><input type="number" min="0" step="0.01" value={tolls} onChange={e => setTolls(e.target.value)} required /></div>
