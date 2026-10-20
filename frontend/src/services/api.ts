@@ -123,3 +123,22 @@ export async function planRoute(payload: { origin: string; destination: string; 
   }
   return response.json()
 }
+
+
+export type CitySuggestion = {
+  ibge_id: number
+  name: string
+  state: string
+  label: string
+}
+
+export async function searchCities(query: string): Promise<CitySuggestion[]> {
+  if (query.trim().length < 2) return []
+  const response = await fetch(`${API_URL}/api/v1/cities?query=${encodeURIComponent(query.trim())}&limit=12`)
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    throw new Error(body?.detail ?? 'Não foi possível consultar as cidades.')
+  }
+  const data = await response.json()
+  return data.items ?? []
+}
