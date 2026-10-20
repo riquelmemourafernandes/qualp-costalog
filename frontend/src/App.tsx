@@ -18,20 +18,14 @@ type AnttCoefficient = { ccd: number; cc: number }
 const anttAxles = [2, 3, 4, 5, 6, 7, 9]
 const anttTableA: Record<AnttCargo, Partial<Record<number, AnttCoefficient>>> = {
   conteinerizada: {
-    3: { ccd: 5.2282, cc: 544.75 },
-    4: { ccd: 5.8755, cc: 577.15 },
-    5: { ccd: 6.7910, cc: 647.29 },
-    6: { ccd: 7.4986, cc: 662.01 },
-    7: { ccd: 8.2292, cc: 819.69 },
-    9: { ccd: 9.3486, cc: 886.05 },
+    3: { ccd: 5.2282, cc: 544.75 }, 4: { ccd: 5.8755, cc: 577.15 },
+    5: { ccd: 6.7910, cc: 647.29 }, 6: { ccd: 7.4986, cc: 662.01 },
+    7: { ccd: 8.2292, cc: 819.69 }, 9: { ccd: 9.3486, cc: 886.05 },
   },
   geral: {
-    2: { ccd: 4.0738, cc: 451.84 },
-    3: { ccd: 5.2177, cc: 541.86 },
-    4: { ccd: 5.9180, cc: 588.86 },
-    5: { ccd: 6.8284, cc: 657.56 },
-    6: { ccd: 7.5347, cc: 671.93 },
-    7: { ccd: 8.2727, cc: 831.66 },
+    2: { ccd: 4.0738, cc: 451.84 }, 3: { ccd: 5.2177, cc: 541.86 },
+    4: { ccd: 5.9180, cc: 588.86 }, 5: { ccd: 6.8284, cc: 657.56 },
+    6: { ccd: 7.5347, cc: 671.93 }, 7: { ccd: 8.2727, cc: 831.66 },
     9: { ccd: 9.4114, cc: 903.32 },
   },
 }
@@ -61,10 +55,8 @@ export default function App() {
   const [vehicleConsumptionInput, setVehicleConsumptionInput] = useState('2.2')
   const [vehicleSaveLoading, setVehicleSaveLoading] = useState(false)
   const [vehicleMessage, setVehicleMessage] = useState('')
-
   const [anttCargo, setAnttCargo] = useState<AnttCargo>('conteinerizada')
   const [anttAxleCount, setAnttAxleCount] = useState('6')
-
 
   useEffect(() => {
     getVehicles().then(records => {
@@ -151,6 +143,10 @@ export default function App() {
     }
   }
 
+  const anttCoefficient = anttTableA[anttCargo][Number(anttAxleCount)]
+  const anttDistance = Number(distance)
+  const anttFloor = anttCoefficient && anttDistance > 0 ? anttCoefficient.ccd * anttDistance + anttCoefficient.cc : null
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -199,41 +195,18 @@ export default function App() {
               <div className="metrics"><div><span>DISTÂNCIA</span><strong>{result ? `${result.distance_km} km` : '—'}</strong></div><div><span>COMBUSTÍVEL</span><strong>{result ? `${result.fuel_liters.toLocaleString('pt-BR')} L` : '—'}</strong></div></div>
             </div>
             <div className="panel next-panel"><div className="panel-heading"><div className="heading-icon"><MapPin size={18} /></div><div><h2>Próximas etapas</h2><p>O que falta para uma consulta completa.</p></div></div><ul><li><span>01</span><div><strong>Roteamento rodoviário</strong><p>Obter distância e traçado de uma fonte adequada a veículos pesados.</p></div></li><li><span>02</span><div><strong>Base nacional de pedágios</strong><p>Importar tarifas oficiais por categoria e vigência.</p></div></li><li><span>03</span><div><strong>Histórico e cadastros</strong><p>Persistir veículos, consultas e auditoria no banco.</p></div></li></ul></div>
+
             <div className="panel next-panel antt-panel">
               <div className="panel-heading"><div className="heading-icon green"><Calculator size={18} /></div><div><h2>Piso mínimo de frete · ANTT</h2><p>Estimativa integrada à distância desta viagem.</p></div></div>
               <p>Referência da Tabela A — carga lotação, contratação do caminhão/composição completa — conforme Portaria SUROC nº 22/2026, vigente desde 30/09/2026.</p>
               <div className="antt-calculator">
-                <div className="field"><label>TIPO DE CARGA</label><select value={anttCargo} onChange={e => { setAnttCargo(e.target.value as AnttCargo); const nextCargo = e.target.value as AnttCargo; if (!anttTableA[nextCargo][Number(anttAxleCount)]) setAnttAxleCount(nextCargo === 'conteinerizada' ? '6' : '6') }}><option value="conteinerizada">Conteinerizada</option><option value="geral">Carga geral</option></select></div>
+                <div className="field"><label>TIPO DE CARGA</label><select value={anttCargo} onChange={e => setAnttCargo(e.target.value as AnttCargo)}><option value="conteinerizada">Conteinerizada</option><option value="geral">Carga geral</option></select></div>
                 <div className="field"><label>EIXOS CARREGADOS</label><select value={anttAxleCount} onChange={e => setAnttAxleCount(e.target.value)}>{anttAxles.filter(axles => anttTableA[anttCargo][axles]).map(axles => <option key={axles} value={axles}>{axles} eixos</option>)}</select></div>
-                <div className="antt-distance"><span>DISTÂNCIA CONSIDERADA</span><strong>{Number(distance) > 0 ? Number(distance).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' km' : 'Informe a distância'}</strong><small>Use a distância rodoviária carregada, não a distância em linha reta.</small></div>
-                {(() => { const coefficient = anttTableA[anttCargo][Number(anttAxleCount)]; const km = Number(distance); const floor = coefficient && km > 0 ? coefficient.ccd * km + coefficient.cc : null; return <div className="antt-result"><span>FRETE MÍNIMO ESTIMADO (CCD × km + CC)</span><strong>{floor === null ? '—' : money(floor)}</strong><small>{coefficient ? 'CCD: ' + money(coefficient.ccd).replace('R
-            <div className="panel next-panel">
-              <div className="panel-heading"><div className="heading-icon"><RefreshCw size={18} /></div><div><h2>Consultas recentes</h2><p>Histórico salvo no banco de dados.</p></div></div>
-              {history.length === 0 ? <p className="history-empty">{historyMessage || 'Nenhuma consulta salva ainda.'}</p> : <div className="history-list">{history.map(item => <div className="history-item" key={item.id}><div><strong>{item.origin} → {item.destination}</strong><p>{item.vehicle_name} · {item.distance_km ?? '—'} km</p></div><strong>{money(Number(item.estimated_total_brl ?? 0))}</strong></div>)}</div>}
-            </div>
-          </section>
-        </div>
-        <footer>QUALP COSTALOG · Ferramenta interna em desenvolvimento <span>Valores estimados, sujeitos à validação.</span></footer>
-      </main>
-    </div>
-  )
-}
-, 'R
-            <div className="panel next-panel">
-              <div className="panel-heading"><div className="heading-icon"><RefreshCw size={18} /></div><div><h2>Consultas recentes</h2><p>Histórico salvo no banco de dados.</p></div></div>
-              {history.length === 0 ? <p className="history-empty">{historyMessage || 'Nenhuma consulta salva ainda.'}</p> : <div className="history-list">{history.map(item => <div className="history-item" key={item.id}><div><strong>{item.origin} → {item.destination}</strong><p>{item.vehicle_name} · {item.distance_km ?? '—'} km</p></div><strong>{money(Number(item.estimated_total_brl ?? 0))}</strong></div>)}</div>}
-            </div>
-          </section>
-        </div>
-        <footer>QUALP COSTALOG · Ferramenta interna em desenvolvimento <span>Valores estimados, sujeitos à validação.</span></footer>
-      </main>
-    </div>
-  )
-}
-) + '/km · CC (carga/descarga): ' + money(coefficient.cc) : 'Configuração não disponível na tabela selecionada.'}</small></div> })()}
+                <div className="antt-distance"><span>DISTÂNCIA CONSIDERADA</span><strong>{anttDistance > 0 ? anttDistance.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' km' : 'Informe a distância'}</strong><small>O cálculo acompanha a distância do formulário; planeje a rota para preencher a distância rodoviária.</small></div>
+                <div className="antt-result"><span>FRETE MÍNIMO ESTIMADO (CCD × km + CC)</span><strong>{anttFloor === null ? '—' : money(anttFloor)}</strong><small>{anttCoefficient ? 'CCD: R$ ' + anttCoefficient.ccd.toFixed(4).replace('.', ',') + '/km · CC (carga/descarga): ' + money(anttCoefficient.cc) : 'Configuração não disponível na tabela selecionada.'}</small></div>
               </div>
               <a className="route-button antt-link" href="https://calculadorafrete.antt.gov.br/" target="_blank" rel="noreferrer">Conferir no calculador oficial da ANTT <ArrowRight size={16} /></a>
-              <p className="antt-footnote">Esta estimativa cobre somente a Tabela A e cargas conteinerizadas ou gerais. Não calcula retorno vazio, alto desempenho nem contratação apenas do cavalo-mecânico (Tabelas B, C e D). Confirme o piso no calculador oficial para o enquadramento legal da operação. Pedágios e custo operacional são valores separados.</p>
+              <p className="antt-footnote">Esta estimativa cobre somente a Tabela A para cargas conteinerizadas ou gerais. Não calcula retorno vazio, alto desempenho nem contratação apenas do cavalo-mecânico (Tabelas B, C e D). Confirme o enquadramento no calculador oficial. Pedágios e custo operacional são valores separados.</p>
             </div>
             <div className="panel next-panel">
               <div className="panel-heading"><div className="heading-icon"><RefreshCw size={18} /></div><div><h2>Consultas recentes</h2><p>Histórico salvo no banco de dados.</p></div></div>
